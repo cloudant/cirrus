@@ -5,6 +5,16 @@ python library build, test and devop like things assistant
 
 [![Build Status](https://travis-ci.org/cloudant/cirrus.svg?branch=develop)](https://travis-ci.org/cloudant/cirrus)
 
+# Read Me First!
+
+All new development work on this fork should be based from the **`new-development`** branch.
+
+This repo was forked from evansde77/cirrus (a former Cloudant employee), but the forked version broke some Cloudant-specific tools. 
+Our solution was to check out the most recently working version, `0.1.7` and create a new release from that.
+
+- The branch **`new-development`** was also created from `0.1.7`, and this should be considerd the new `develop` branch.
+- Release `1.0.0` was created from **`new-development`**.
+
 Installation Prerequisites
 ==========================
 
@@ -59,6 +69,16 @@ See the [Cirrus Commands Docs](https://github.com/cloudant/cirrus/wiki#command-r
 * [git cirrus review](https://github.com/cloudant/cirrus/wiki/ReviewCommand) - Helper for GitHub Pull Requests
 
 
+Troubleshooting
+================
 
+**macOS Sierra**: Try the steps below if `git cirrus build` fails during installation of uWSGI because of `ld: file not found: /usr/lib/system/libsystem_symptoms.dylib for architecture x86_64`. Details [here](https://github.com/unbit/uwsgi/issues/1364).
+```
+brew update
+brew unlink libxml2
+brew uninstall libxml2
+brew install --with-python libxml2
+brew link libxml2 --force
+```
 
 
