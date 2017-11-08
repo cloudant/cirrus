@@ -59,6 +59,16 @@ See the [Cirrus Commands Docs](https://github.com/cloudant/cirrus/wiki#command-r
 * [git cirrus review](https://github.com/cloudant/cirrus/wiki/ReviewCommand) - Helper for GitHub Pull Requests
 
 
+Troubleshooting
+================
 
+**macOS Sierra**: Try the steps below if `git cirrus build` fails during installation of uWSGI because of `ld: file not found: /usr/lib/system/libsystem_symptoms.dylib for architecture x86_64`. Details [here](https://github.com/unbit/uwsgi/issues/1364).
+```
+brew update
+brew unlink libxml2
+brew uninstall libxml2
+brew install --with-python libxml2
+brew link libxml2 --force
+```
 
 
