@@ -50,16 +50,26 @@ class ReleaseNewCommandTest(unittest.TestCase):
             os.system('rm -rf {0}'.format(self.dir))
 
     @mock.patch('cirrus.release.has_unstaged_changes')
-    def test_new_release(self, mock_unstaged):
+    @mock.patch('cirrus.release.get_active_branch')
+    @mock.patch('cirrus.release.get_active_commit_sha')
+    def test_new_release(
+        self,
+        mock_get_sha,
+        mock_get_branch,
+        mock_unstaged
+    ):
         """
         _test_new_release_
 
         """
+        mock_get_branch.return_value = mock.Mock()
+        mock_get_sha.return_value = 'abc123'
         mock_unstaged.return_value = False
         opts = mock.Mock()
         opts.micro = True
         opts.major = False
         opts.minor = False
+        opts.release_candidate = False
         opts.bump = None
 
         # should create a new minor release, editing
@@ -79,16 +89,26 @@ class ReleaseNewCommandTest(unittest.TestCase):
         self.assertEqual(self.mock_commit.call_args[0][2], 'cirrus.conf')
 
     @mock.patch('cirrus.release.has_unstaged_changes')
-    def test_new_release_unstaged(self, mock_unstaged):
+    @mock.patch('cirrus.release.get_active_branch')
+    @mock.patch('cirrus.release.get_active_commit_sha')
+    def test_new_release_unstaged(
+        self,
+        mock_get_sha,
+        mock_get_branch,
+        mock_unstaged
+    ):
         """
         test new release fails on unstaged changes
 
         """
+        mock_get_branch.return_value = mock.Mock()
+        mock_get_sha.return_value = 'abc123'
         mock_unstaged.return_value = True
         opts = mock.Mock()
         opts.micro = True
         opts.major = False
         opts.minor = False
+        opts.release_candidate = False
         opts.bump = None
         self.assertRaises(RuntimeError, new_release, opts)
 
