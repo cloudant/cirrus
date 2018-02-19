@@ -3,7 +3,17 @@ cirrus
 
 python library build, test and devop like things assistant
 
-[![Build Status](https://travis-ci.org/evansde77/cirrus.svg?branch=develop)](https://travis-ci.org/evansde77/cirrus)
+[![Build Status](https://travis-ci.org/evansde77/cirrus.svg?branch=develop)](https://travis-ci.org/cloudant/cirrus)
+
+# Read Me First!
+
+All new development work on this fork should be based from the **`new-development`** branch.
+
+This repo was forked from evansde77/cirrus (a former Cloudant employee), but the forked version broke some Cloudant-specific tools. 
+Our solution was to check out the most recently working version, `0.1.7` and create a new release from that.
+
+- The branch **`new-development`** was also created from `0.1.7`, and this should be considerd the new `develop` branch.
+- Release `1.0.0` was created from **`new-development`**.
 
 Installation Prerequisites
 ==========================
