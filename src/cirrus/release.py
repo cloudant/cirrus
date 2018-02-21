@@ -14,6 +14,7 @@ from collections import OrderedDict
 from fabric.operations import local
 import pluggage.registry
 
+import argparse
 from argparse import ArgumentParser
 from cirrus.configuration import load_configuration
 from cirrus.environment import repo_directory
@@ -326,6 +327,19 @@ def build_parser(argslist):
         help='log all status values for branches during command'
     )
 
+    build_command = subparsers.add_parser('build')
+    build_command.add_argument(
+        '-t',
+        '--tag',
+        type=str,
+        nargs='?',
+        const='sha',
+        help=(
+            'Apply a post-release tag to build. If TAG is not provided, the '
+            'latest commit SHA of the active branch is used.'
+        )
+    )
+
     upload_command = subparsers.add_parser('upload')
     upload_command.add_argument(
         '--test',
@@ -356,6 +370,13 @@ def build_parser(argslist):
         action='store_false',
         dest='pypi_sudo',
         help='do not use sudo to upload build artifact to pypi'
+    )
+    upload_command.add_argument(
+        'target',
+        nargs='?',
+        type=str,
+        default=None,
+        help='Optional file path of the tarball to be uploaded'
     )
     upload_command.set_defaults(pypi_sudo=True)
 
@@ -634,7 +655,11 @@ def upload_release(opts):
     LOGGER.info("Uploading release...")
     config = load_configuration()
 
-    build_artifact = artifact_name(config)
+    if opts.target:
+        build_artifact = opts.target
+    else:
+        build_artifact = artifact_name(config)
+
     LOGGER.info("Uploading artifact: {0}".format(build_artifact))
 
     if not os.path.exists(build_artifact):
@@ -811,6 +836,9 @@ def build_release(opts):
     run python setup.py sdist to create the release artifact
 
     """
+    if opts.tag:
+        return build_tagged_release(opts)
+
     LOGGER.info("Building release...")
     config = load_configuration()
     local('python setup.py sdist')
@@ -821,6 +849,39 @@ def build_release(opts):
         raise RuntimeError(msg)
     LOGGER.info("Release artifact created: {0}".format(build_artifact))
     return build_artifact
+
+
+def build_tagged_release(opts):
+    """
+    run "python setup.py egg_info --tag-build '{}' sdist" to produce a build
+    with a post tag release.
+    """
+    if opts.tag == 'sha':
+        tag = get_active_commit_sha('.')
+    else:
+        tag = opts.tag
+
+    tag = '-{}'.format(tag)
+
+    LOGGER.info("Building tagged release")
+    config = load_configuration()
+    cmd = "python setup.py egg_info --tag-build '{}' sdist".format(tag)
+    local(cmd, capture=True)
+
+    untagged_build_artifact = artifact_name(config)
+    tagged_build_artifact = untagged_build_artifact.replace(
+        '.tar.gz',
+        '{}.tar.gz'.format(tag)
+    )
+
+    if not os.path.exists(tagged_build_artifact):
+        raise RuntimeError(
+            "Expected build artifact {} was not found"
+            .format(tagged_build_artifact)
+        )
+
+    LOGGER.info("Build artifact created: {}".format(tagged_build_artifact))
+    return tagged_build_artifact
 
 
 def update_requirements(path, versions):

@@ -153,6 +153,7 @@ class ReleaseBuildCommandTest(unittest.TestCase):
             mock_os.path.join.return_value = 'build_artifact'
 
             opts = mock.Mock()
+            opts.tag = None
             result = build_release(opts)
             self.assertEqual(result, 'build_artifact')
             self.failUnless(mock_os.path.exists.called)
@@ -189,6 +190,7 @@ class ReleaseUploadTest(unittest.TestCase):
     def test_missing_build_artifact(self):
         """test throws if build artifact not found"""
         opts = mock.Mock()
+        opts.target = None
         self.assertRaises(RuntimeError, upload_release, opts)
 
     @mock.patch('cirrus.release.os.path.exists')
@@ -202,6 +204,7 @@ class ReleaseUploadTest(unittest.TestCase):
         opts = mock.Mock()
         opts.plugin = 'pypi'
         opts.test = False
+        opts.target = None
         upload_release(opts)
         self.failUnless(plugin.upload.called)
         plugin.upload.assert_has_calls(
