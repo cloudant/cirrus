@@ -25,7 +25,7 @@ Installation as a user:
 =======================
 
 ```bash
-curl -O https://raw.githubusercontent.com/evansde77/cirrus/develop/installer.sh
+curl -O https://raw.githubusercontent.com/cloudant/cirrus/develop/installer.sh
 bash installer.sh
 ```
 
