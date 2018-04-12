@@ -8,9 +8,9 @@
 # installs git alias commands
 # gets token for github access & updates .gitconfig
 
-: ${CIRRUS_PYPI_URL?"is not set! Hint: https://user:password@pypi.cloudant.com)"}
+: ${CIRRUS_PYPI_URL?"is not set! Hint: https://user@us.ibm.com:password@na.artifactory.swg-devops.com/artifactory/api/pypi/wcp-sapi-pypi-virtual/simple)"}
 
-CIRRUS_PACKAGE="cirrus-cli==1.1.0"
+CIRRUS_PACKAGE="cirrus-cli==1.1.1"
 CIRRUS_INSTALL_DIR="${HOME}/.cirrus"
 CIRRUS_DEFAULT_USER="${USER}"
 
