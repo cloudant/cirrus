@@ -3,7 +3,7 @@ cirrus
 
 python library build, test and devop like things assistant
 
-[![Build Status](https://travis-ci.org/evansde77/cirrus.svg?branch=develop)](https://travis-ci.org/cloudant/cirrus)
+[![Build Status](https://travis-ci.org/cloudant/cirrus.svg?branch=new-development)](https://travis-ci.org/cloudant/cirrus)
 
 # Read Me First!
 
@@ -25,7 +25,7 @@ Installation as a user:
 =======================
 
 ```bash
-curl -O https://raw.githubusercontent.com/cloudant/cirrus/develop/installer.sh
+curl -O https://raw.githubusercontent.com/cloudant/cirrus/new-development/installer.sh
 bash installer.sh
 ```
 
