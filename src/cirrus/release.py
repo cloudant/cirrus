@@ -340,6 +340,13 @@ def build_parser(argslist):
         )
     )
 
+    build_and_upload_command = subparsers.add_parser('build_and_upload')
+    build_and_upload_command.add_argument(
+        '--dev',
+        action='store_true',
+        help='builds and upload a git sha tagged pre-release'
+    )
+
     upload_command = subparsers.add_parser('upload')
     upload_command.add_argument(
         '--test',
@@ -884,6 +891,24 @@ def build_tagged_release(opts):
     return tagged_build_artifact
 
 
+def build_and_upload(opts):
+    """
+    Runs 'python setup.py egg_info bdist_wheel upload -r local'
+    to build and upload. If 'dev' opts is provided, the setup.py command will
+    be ran with a '--tag-build' option which appends the current git sha to the
+    end of the release number (MAJOR.MINOR.MICRO.SHA).
+    """
+    if opts.dev:
+        active_sha = get_active_commit_sha('.')
+        tag_option = '--tag-build ".{}"'.format(active_sha)
+    else:
+        tag_option = ''
+    LOGGER.info("Building and uploading release...")
+    cmd = 'python setup.py egg_info {} bdist_wheel upload -r local'
+    local(cmd.format(tag_option), capture=True)
+    LOGGER.info("...Build and upload complete")
+
+
 def update_requirements(path, versions):
     """
     _update_requirements_
@@ -931,6 +956,8 @@ def main():
     if opts.command == 'build':
         build_release(opts)
 
+    if opts.command == 'build_and_upload':
+        build_and_upload(opts)
 
 if __name__ == '__main__':
 
