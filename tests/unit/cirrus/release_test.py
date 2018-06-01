@@ -8,10 +8,13 @@ import unittest
 import tempfile
 import mock
 
-from cirrus.release import new_release
-from cirrus.release import upload_release
-from cirrus.release import build_release
-from cirrus.release import artifact_name
+from cirrus.release import (
+    artifact_name,
+    build_and_upload,
+    build_release,
+    new_release,
+    upload_release
+)
 from cirrus.configuration import Configuration
 from pluggage.errors import FactoryError
 
@@ -234,6 +237,46 @@ class ReleaseUploadTest(unittest.TestCase):
         self.assertRaises(FactoryError, upload_release, opts)
 
 
+class ReleaseBuildAndUploadTest(unittest.TestCase):
+    def setUp(self):
+        self.patch_get_active_sha = mock.patch(
+            'cirrus.release.get_active_commit_sha'
+        )
+        self.mock_get_active_sha = self.patch_get_active_sha.start()
+        self.patch_local = mock.patch('cirrus.release.local')
+        self.mock_local = self.patch_local.start()
+
+    def tearDown(self):
+        self.patch_get_active_sha.stop()
+        self.patch_local.stop()
+
+    def test_build_and_upload(self):
+        """
+        Ensures the build_and_upload command can be ran
+        """
+        opts = mock.Mock()
+        opts.dev = False
+        build_and_upload(opts)
+        self.assertFalse(self.mock_get_active_sha.called)
+        self.mock_local.assert_called_with(
+            'python setup.py egg_info  bdist_wheel upload -r local',
+            capture=True
+        )
+
+    def test_build_and_upload_dev(self):
+        """
+        Ensures the build_and_upload command can be ran with the 'dev' option
+        for creating pre-releases (git sha tagged builds)
+        """
+        self.mock_get_active_sha.return_value = 'deadbee'
+        opts = mock.Mock()
+        opts.dev = True
+        build_and_upload(opts)
+        self.assertTrue(self.mock_get_active_sha.called)
+        self.mock_local.assert_called_with(
+            'python setup.py egg_info --tag-build ".deadbee" bdist_wheel upload -r local',
+            capture=True
+        )
 
 if __name__ == '__main__':
     unittest.main()
