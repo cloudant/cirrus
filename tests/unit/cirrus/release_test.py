@@ -163,7 +163,32 @@ class ReleaseBuildCommandTest(unittest.TestCase):
             self.assertEqual(mock_os.path.exists.call_args[0][0], 'build_artifact')
 
             self.failUnless(self.mock_local.called)
-            self.assertEqual(self.mock_local.call_args[0][0], 'python setup.py sdist')
+            self.assertEqual(self.mock_local.call_args[0][0], 'python setup.py bdist_wheel')
+
+    def test_build_command_with_tag(self):
+        with mock.patch('cirrus.release.os') as mock_os:
+
+            mock_os.path = mock.Mock()
+            mock_os.path.exists = mock.Mock()
+            mock_os.path.exists.return_value = True
+            mock_os.path.join = mock.Mock()
+            mock_os.path.join.return_value = 'build_artifact'
+
+            opts = mock.Mock()
+            opts.tag = 'sometag'
+            result = build_release(opts)
+            self.assertEqual(result, 'build_artifact')
+            self.failUnless(mock_os.path.exists.called)
+            self.assertEqual(
+                mock_os.path.exists.call_args[0][0],
+                'build_artifact'
+            )
+
+            self.failUnless(self.mock_local.called)
+            self.assertEqual(
+                self.mock_local.call_args[0][0],
+                "python setup.py egg_info --tag-build '.sometag' bdist_wheel"
+            )
 
 
 class ReleaseUploadTest(unittest.TestCase):
@@ -277,6 +302,62 @@ class ReleaseBuildAndUploadTest(unittest.TestCase):
             'python setup.py egg_info --tag-build ".deadbee" bdist_wheel upload -r local',
             capture=True
         )
+
+
+class ArtifactNameTests(unittest.TestCase):
+    """
+    Tests for artifact_name
+    """
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        config = os.path.join(self.dir, 'cirrus.conf')
+        write_cirrus_conf(
+            config,
+            **{
+                'package': {
+                    'name': 'cirrus_unittest',
+                    'version': '1.2.3',
+                    'python_versions': '2'
+                },
+                'github': {
+                    'develop_branch': 'develop',
+                    'release_branch_prefix': 'release/'
+                },
+                'pypi': {
+                    'pypi_upload_path': '/opt/pypi',
+                    'pypi_url': 'pypi.cloudant.com',
+                    'pypi_username': 'steve',
+                    'pypi_ssh_key': 'steves_creds'
+                }
+            }
+        )
+        self.harness = CirrusConfigurationHarness(
+            'cirrus.release.load_configuration',
+            config
+        )
+        self.harness.setUp()
+
+    def tearDown(self):
+        self.harness.tearDown()
+
+    def test_artifact_name(self):
+        """
+        Ensures artifact_name returns as expected when no tag is provided
+        """
+        self.assertEqual(
+            artifact_name(self.harness.config),
+            'dist/cirrus_unittest-1.2.3-py2-none-any.whl'
+        )
+
+    def test_tagged_artifact_name(self):
+        """
+        Ensures artifact_name returns as expected when a tag is provided
+        """
+        self.assertEqual(
+            artifact_name(self.harness.config, tag='somesortoftag'),
+            'dist/cirrus_unittest-1.2.3.somesortoftag-py2-none-any.whl'
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

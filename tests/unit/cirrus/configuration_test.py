@@ -28,6 +28,7 @@ class ConfigurationTests(unittest.TestCase):
         parser.add_section('gitflow')
         parser.set('package', 'name', 'cirrus_tests')
         parser.set('package', 'version', '1.2.3')
+        parser.set('package', 'python_versions', '2, 3')
         parser.set('gitflow', 'develop_branch', 'develop')
         parser.set('gitflow', 'release_branch_prefix', 'release/')
         parser.set('gitflow', 'feature_branch_prefix', 'feature/')
@@ -63,6 +64,7 @@ class ConfigurationTests(unittest.TestCase):
         config = load_configuration(package_dir=self.dir, gitconfig_file=self.gitconfig)
         self.assertEqual(config.package_version(), '1.2.3')
         self.assertEqual(config.package_name(), 'cirrus_tests')
+        self.assertEqual(config.python_versions(), 'py2.py3')
 
         self.assertEqual(config.gitflow_branch_name(), 'develop')
         self.assertEqual(config.gitflow_release_prefix(), 'release/')
@@ -116,7 +118,6 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(
             mapping['cirrus']['configuration']['package']['name'], 'cirrus_tests'
         )
-
 
 
 if __name__ == '__main__':

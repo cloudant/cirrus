@@ -75,15 +75,39 @@ def bump_version_field(version, field='major'):
     return "{major}.{minor}.{micro}".format(**vers_params)
 
 
-def artifact_name(config):
+def artifact_name(config, tag=None):
     """
-    given cirrus config, build the expected
-    artifact name
+    Builds the expected artifact name
+
+    :param Configuration config: cirrus config
+    :param str tag: python_tag portion of the name, omitted if None (default)
+
+    :returns: path of the build artifact
+    :rtype: str
     """
-    artifact_name = "{0}-{1}.tar.gz".format(
-        config.package_name(),
-        config.package_version()
-    )
+    if tag is None:
+        artifact_name = (
+            '{distribution}-{version}-{python_tag}'
+            '-{abi_tag}-{platform_tag}.whl'
+        ).format(
+            distribution=config.package_name(),
+            version=config.package_version(),
+            python_tag=config.python_versions(),
+            abi_tag='none',
+            platform_tag='any'
+        )
+    else:
+        artifact_name = (
+            '{distribution}-{version}.{tag}-{python_tag}'
+            '-{abi_tag}-{platform_tag}.whl'
+        ).format(
+                distribution=config.package_name(),
+                version=config.package_version(),
+                tag=tag,
+                python_tag=config.python_versions(),
+                abi_tag='none',
+                platform_tag='any'
+        )
     build_artifact = os.path.join(
         os.getcwd(),
         'dist',
@@ -838,17 +862,14 @@ def merge_release(opts):
 
 def build_release(opts):
     """
-    _build_release_
-
-    run python setup.py sdist to create the release artifact
-
+    Runs "python setup.py bdist_wheel" to create the release artifact
     """
     if opts.tag:
         return build_tagged_release(opts)
 
     LOGGER.info("Building release...")
     config = load_configuration()
-    local('python setup.py sdist')
+    local('python setup.py bdist_wheel')
     build_artifact = artifact_name(config)
     if not os.path.exists(build_artifact):
         msg = "Expected build artifact: {0} Not Found".format(build_artifact)
@@ -860,35 +881,26 @@ def build_release(opts):
 
 def build_tagged_release(opts):
     """
-    run "python setup.py egg_info --tag-build '{}' sdist" to produce a build
-    with a post tag release.
+    Runs "python setup.py egg_info --tag-build '{}' bdist_wheel" to produce a
+    build with a post tag release.
     """
     if opts.tag == 'sha':
         tag = get_active_commit_sha('.')
     else:
         tag = opts.tag
 
-    tag = '-{}'.format(tag)
-
     LOGGER.info("Building tagged release")
     config = load_configuration()
-    cmd = "python setup.py egg_info --tag-build '{}' sdist".format(tag)
+    cmd = "python setup.py egg_info --tag-build '.{}' bdist_wheel".format(tag)
     local(cmd, capture=True)
-
-    untagged_build_artifact = artifact_name(config)
-    tagged_build_artifact = untagged_build_artifact.replace(
-        '.tar.gz',
-        '{}.tar.gz'.format(tag)
-    )
-
-    if not os.path.exists(tagged_build_artifact):
+    build_artifact = artifact_name(config, tag=tag)
+    if not os.path.exists(build_artifact):
         raise RuntimeError(
             "Expected build artifact {} was not found"
-            .format(tagged_build_artifact)
+            .format(build_artifact)
         )
-
-    LOGGER.info("Build artifact created: {}".format(tagged_build_artifact))
-    return tagged_build_artifact
+    LOGGER.info("Build artifact created: {}".format(build_artifact))
+    return build_artifact
 
 
 def build_and_upload(opts):

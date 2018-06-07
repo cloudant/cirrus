@@ -122,8 +122,28 @@ class Configuration(dict):
     def package_version(self):
         return self.get('package', {}).get('version')
 
+    def python_versions(self):
+        """
+        Returns a formatted string of python versions based on the versions
+        provided in the config. For example if compatible with python2 and
+        python3 the config should be set as:
+            python_versions = 2, 3
+        and will be returned as:
+            "py2.py3"
+        """
+        versions = self.get('package', {}).get('python_versions', '')
+        versions = versions.split(', ')
+        versions.sort()
+        return '.'.join(['py{}'.format(version) for version in versions])
+
     def package_name(self):
-        return self.get('package', {}).get('name')
+        """
+        Returns package name. Replaces '-' with '_' as this is the convention
+        used for wheels
+        """
+        name = self.get('package', {}).get('name')
+        name = name.replace('-', '_')
+        return name
 
     def organisation_name(self):
         return self.get('package', {}).get('organization')
