@@ -28,6 +28,8 @@ from cirrus.utils import update_file, update_version
 from cirrus.logger import get_logger
 from cirrus.plugins.jenkins import JenkinsClient
 
+BUILD_CMD = 'python setup.py bdist_wheel'
+BUILD_CMD_TAGGED = "python setup.py egg_info --tag-build '.{}' bdist_wheel"
 LOGGER = get_logger()
 
 
@@ -284,16 +286,10 @@ def build_parser(argslist):
         nargs='+',
         help='package versions (pkg==0.0.0) to update in requirements.txt'
     )
-    new_command.add_argument(
-        '--rc',
-        action='store_true',
-        dest='release_candidate'
-    )
 
     # borrow --micro/minor/major options from "new" command.
     subparsers.add_parser('trigger', parents=[new_command], add_help=False)
     subparsers.add_parser('build')
-    subparsers.add_parser('rc')
 
     merge_command = subparsers.add_parser('merge')
     merge_command.add_argument(
@@ -353,15 +349,9 @@ def build_parser(argslist):
 
     build_command = subparsers.add_parser('build')
     build_command.add_argument(
-        '-t',
-        '--tag',
-        type=str,
-        nargs='?',
-        const='sha',
-        help=(
-            'Apply a post-release tag to build. If TAG is not provided, the '
-            'latest commit SHA of the active branch is used.'
-        )
+        '--dev',
+        action='store_true',
+        help='builds a git sha tagged pre-release'
     )
 
     build_and_upload_command = subparsers.add_parser('build_and_upload')
@@ -415,98 +405,11 @@ def build_parser(argslist):
     return opts
 
 
-def get_release_candidate_version():
-    sha = get_active_commit_sha('.')
-    version = 'rc.{}'.format(sha)
-    return version
-
-
 def get_release_version(opts):
     fields = ['major', 'minor', 'micro']
     mask = [opts.major, opts.minor, opts.micro]
     field = [x for x in itertools.compress(fields, mask)][0]
     return field
-
-
-def create_release_candidate_branch(opts):
-    """
-    Create a release candidate branch.
-
-    RC branches are created from feature branches (not from develop like a
-    production release).
-
-    Branches follow the naming scheme current_version-rc.gitSHA, or
-    2.6.15-rc.be5c803 as an example.
-    """
-    config = load_configuration()
-    protected_branches = [
-        config.gitflow_branch_name(),
-        config.gitflow_master_name(),
-    ]
-    head = get_active_branch('.')
-    if head.name in protected_branches:
-        msg = (
-            "Release candidates cannot be made from {} branches."
-            .format(protected_branches)
-        )
-        LOGGER.error(msg)
-        raise RuntimeError(msg)
-
-    current_version = config.package_version()
-    new_version = '{}-{}'.format(
-        current_version,
-        get_release_candidate_version()
-    )
-
-    # release branch
-    branch_name = "{0}{1}".format(
-        config.gitflow_release_prefix(),
-        new_version
-    )
-    LOGGER.info('release branch is {}'.format(branch_name))
-
-    # need to be on the latest develop
-    repo_dir = repo_directory()
-    # make sure the branch doesnt already exist on remote
-    if remote_branch_exists(repo_dir, branch_name):
-        msg = (
-            "Error: branch {} already exists on the remote repo "
-            "Please clean up that branch before proceeding"
-        ).format(branch_name)
-        LOGGER.error(msg)
-        raise RuntimeError(msg)
-
-    # make sure repo is clean
-    if has_unstaged_changes(repo_dir):
-        msg = (
-            "Error: Unstaged changes are present on the branch "
-            "Please commit them or clean up before proceeding"
-        )
-        LOGGER.error(msg)
-        raise RuntimeError(msg)
-
-    base_branch = get_active_branch('.')
-
-    checkout_and_pull(repo_dir, base_branch)
-    # create release branch
-    branch(repo_dir, branch_name, base_branch)
-    # update cirrus conf
-    config.update_package_version(new_version)
-    changes = ['cirrus.conf']
-
-    # update __version__ or equivalent
-    version_file, version_attr = config.version_file()
-    if version_file is not None:
-        LOGGER.info('Updating {} attribute in {}'.format(version_file, version_attr))
-        update_version(version_file, new_version, version_attr)
-        changes.append(version_file)
-
-    # update files changed
-    msg = "cirrus release: new release created for {}".format(branch_name)
-    LOGGER.info('Committing files: {}'.format(','.join(changes)))
-    LOGGER.info(msg)
-    commit_files(repo_dir, msg, *changes)
-    return (new_version, 'rc')
 
 
 def new_release(opts):
@@ -521,13 +424,10 @@ def new_release(opts):
     LOGGER.info("Creating new release...")
     config = load_configuration()
 
-    if opts.release_candidate:
-        return create_release_candidate_branch(opts)
-    else:
-        if not highlander([opts.major, opts.minor, opts.micro]):
-            msg = "Can only specify one of --major, --minor or --micro"
-            LOGGER.error(msg)
-            raise RuntimeError(msg)
+    if not highlander([opts.major, opts.minor, opts.micro]):
+        msg = "Can only specify one of --major, --minor or --micro"
+        LOGGER.error(msg)
+        raise RuntimeError(msg)
 
     current_version = config.package_version()
 
@@ -680,38 +580,7 @@ def _trigger_jenkins_release(config, new_version, level):
 
 
 def upload_release(opts):
-    """
-    _upload_release_
-    """
-    LOGGER.info("Uploading release...")
-    config = load_configuration()
-
-    if opts.target:
-        build_artifact = opts.target
-    else:
-        build_artifact = artifact_name(config)
-
-    LOGGER.info("Uploading artifact: {0}".format(build_artifact))
-
-    if not os.path.exists(build_artifact):
-        msg = (
-            "Expected build artifact: {0} Not Found, upload aborted\n"
-            "Did you run git cirrus release build?"
-        ).format(build_artifact)
-        LOGGER.error(msg)
-        raise RuntimeError(msg)
-
-    # merge in release branches and tag, push to remote
-    tag = config.package_version()
-    LOGGER.info("Loading plugin {}".format(opts.plugin))
-    plugin = get_plugin(opts.plugin)
-
-    if opts.test:
-        LOGGER.info("Uploading {} to pypi disabled by test or option...".format(tag))
-        return
-
-    plugin.upload(opts, build_artifact)
-    return
+    raise RuntimeError('Command no longer supported. Use build_and_release')
 
 
 def merge_release(opts):
@@ -864,42 +733,21 @@ def build_release(opts):
     """
     Runs "python setup.py bdist_wheel" to create the release artifact
     """
-    if opts.tag:
-        return build_tagged_release(opts)
+    cmd = BUILD_CMD
+    tag = None
+    if opts.dev:
+        tag = get_active_commit_sha('.')
+        cmd = BUILD_CMD_TAGGED.format(tag)
 
     LOGGER.info("Building release...")
     config = load_configuration()
-    local('python setup.py bdist_wheel')
-    build_artifact = artifact_name(config)
+    local(cmd)
+    build_artifact = artifact_name(config, tag=tag)
     if not os.path.exists(build_artifact):
         msg = "Expected build artifact: {0} Not Found".format(build_artifact)
         LOGGER.error(msg)
         raise RuntimeError(msg)
     LOGGER.info("Release artifact created: {0}".format(build_artifact))
-    return build_artifact
-
-
-def build_tagged_release(opts):
-    """
-    Runs "python setup.py egg_info --tag-build '{}' bdist_wheel" to produce a
-    build with a post tag release.
-    """
-    if opts.tag == 'sha':
-        tag = get_active_commit_sha('.')
-    else:
-        tag = opts.tag
-
-    LOGGER.info("Building tagged release")
-    config = load_configuration()
-    cmd = "python setup.py egg_info --tag-build '.{}' bdist_wheel".format(tag)
-    local(cmd, capture=True)
-    build_artifact = artifact_name(config, tag=tag)
-    if not os.path.exists(build_artifact):
-        raise RuntimeError(
-            "Expected build artifact {} was not found"
-            .format(build_artifact)
-        )
-    LOGGER.info("Build artifact created: {}".format(build_artifact))
     return build_artifact
 
 

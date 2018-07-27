@@ -140,9 +140,14 @@ class ReleaseBuildCommandTest(unittest.TestCase):
         self.harness.tearDown()
         self.patch_local.stop()
 
-    def test_build_command_raises(self):
+    @mock.patch('cirrus.release.artifact_name')
+    @mock.patch('cirrus.release.get_active_commit_sha')
+    def test_build_command_raises(self, mock_git_sha, mock_artifact_name):
         """should raise when build artifact is not present"""
         opts = mock.Mock()
+        mock_git_sha.return_value = 'abc12'
+        mock_artifact_name.return_value = 'some/path/that/does/not/exist'
+
         self.assertRaises(RuntimeError, build_release, opts)
 
     def test_build_command(self):
@@ -156,7 +161,7 @@ class ReleaseBuildCommandTest(unittest.TestCase):
             mock_os.path.join.return_value = 'build_artifact'
 
             opts = mock.Mock()
-            opts.tag = None
+            opts.dev = None
             result = build_release(opts)
             self.assertEqual(result, 'build_artifact')
             self.failUnless(mock_os.path.exists.called)
@@ -165,7 +170,8 @@ class ReleaseBuildCommandTest(unittest.TestCase):
             self.failUnless(self.mock_local.called)
             self.assertEqual(self.mock_local.call_args[0][0], 'python setup.py bdist_wheel')
 
-    def test_build_command_with_tag(self):
+    @mock.patch('cirrus.release.get_active_commit_sha')
+    def test_build_command_with_tag(self, mock_git_sha):
         with mock.patch('cirrus.release.os') as mock_os:
 
             mock_os.path = mock.Mock()
@@ -173,9 +179,10 @@ class ReleaseBuildCommandTest(unittest.TestCase):
             mock_os.path.exists.return_value = True
             mock_os.path.join = mock.Mock()
             mock_os.path.join.return_value = 'build_artifact'
-
             opts = mock.Mock()
-            opts.tag = 'sometag'
+            opts.dev = True
+            mock_git_sha.return_value = 'abc123'
+
             result = build_release(opts)
             self.assertEqual(result, 'build_artifact')
             self.failUnless(mock_os.path.exists.called)
@@ -187,7 +194,7 @@ class ReleaseBuildCommandTest(unittest.TestCase):
             self.failUnless(self.mock_local.called)
             self.assertEqual(
                 self.mock_local.call_args[0][0],
-                "python setup.py egg_info --tag-build '.sometag' bdist_wheel"
+                "python setup.py egg_info --tag-build '.abc123' bdist_wheel"
             )
 
 
@@ -233,11 +240,8 @@ class ReleaseUploadTest(unittest.TestCase):
         opts.plugin = 'pypi'
         opts.test = False
         opts.target = None
-        upload_release(opts)
-        self.failUnless(plugin.upload.called)
-        plugin.upload.assert_has_calls(
-            [mock.call(opts, self.artifact_name)]
-        )
+        self.assertRaises(RuntimeError, upload_release, opts)
+        self.failIf(plugin.upload.called)
 
     @mock.patch('cirrus.release.os.path.exists')
     @mock.patch('cirrus.release.get_plugin')
@@ -249,8 +253,7 @@ class ReleaseUploadTest(unittest.TestCase):
         opts = mock.Mock()
         opts.plugin = 'pypi'
         opts.test = True
-        upload_release(opts)
-        self.failUnless(not plugin.upload.called)
+        self.assertRaises(RuntimeError, upload_release, opts)
 
     @mock.patch('cirrus.release.os.path.exists')
     def test_upload_bad_plugin(self, mock_exists):
@@ -259,7 +262,7 @@ class ReleaseUploadTest(unittest.TestCase):
         opts = mock.Mock()
         opts.plugin = 'womp'
         opts.test = True
-        self.assertRaises(FactoryError, upload_release, opts)
+        self.assertRaises(RuntimeError, upload_release, opts)
 
 
 class ReleaseBuildAndUploadTest(unittest.TestCase):
@@ -344,18 +347,18 @@ class ArtifactNameTests(unittest.TestCase):
         """
         Ensures artifact_name returns as expected when no tag is provided
         """
-        self.assertEqual(
-            artifact_name(self.harness.config),
-            'dist/cirrus_unittest-1.2.3-py2-none-any.whl'
+        self.assertIn(
+            'dist/cirrus_unittest-1.2.3-py2-none-any.whl',
+            artifact_name(self.harness.config)
         )
 
     def test_tagged_artifact_name(self):
         """
         Ensures artifact_name returns as expected when a tag is provided
         """
-        self.assertEqual(
-            artifact_name(self.harness.config, tag='somesortoftag'),
-            'dist/cirrus_unittest-1.2.3.somesortoftag-py2-none-any.whl'
+        self.assertIn(
+            'dist/cirrus_unittest-1.2.3.somesortoftag-py2-none-any.whl',
+            artifact_name(self.harness.config, tag='somesortoftag')
         )
 
 
