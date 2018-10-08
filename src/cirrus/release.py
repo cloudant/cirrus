@@ -10,6 +10,7 @@ import os
 import sys
 import datetime
 import itertools
+import shutil
 from collections import OrderedDict
 from fabric.operations import local
 import pluggage.registry
@@ -758,6 +759,10 @@ def build_and_upload(opts):
     be ran with a '--tag-build' option which appends the current git sha to the
     end of the release number (MAJOR.MINOR.MICRO.SHA).
     """
+    # delete any existing build directory if it exists
+    if os.path.isdir('build'):
+        shutil.rmtree('build')
+
     if opts.dev:
         active_sha = get_active_commit_sha('.')
         tag_option = '--tag-build ".{}"'.format(active_sha)
