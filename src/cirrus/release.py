@@ -581,7 +581,7 @@ def _trigger_jenkins_release(config, new_version, level):
 
 
 def upload_release(opts):
-    raise RuntimeError('Command no longer supported. Use build_and_release')
+    raise RuntimeError('Command no longer supported. Use build_and_upload')
 
 
 def merge_release(opts):
@@ -767,6 +767,15 @@ def build_and_upload(opts):
         active_sha = get_active_commit_sha('.')
         tag_option = '--tag-build ".{}"'.format(active_sha)
     else:
+        # check that the active branch is a release branch, fail out with
+        # message if not
+        if not get_active_branch('.').name.startswith('release'):
+            msg = (
+                'Must be on a release branch to make a release. If you '
+                'intended to make a prerelease, re-run this command with the '
+                '--dev option'
+            )
+            raise RuntimeError(msg)
         tag_option = ''
     LOGGER.info("Building and uploading release...")
     cmd = 'python setup.py egg_info {} bdist_wheel upload -r local'
