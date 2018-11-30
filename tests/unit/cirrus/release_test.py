@@ -278,8 +278,9 @@ class ReleaseBuildAndUploadTest(unittest.TestCase):
         self.patch_get_active_sha.stop()
         self.patch_local.stop()
 
+    @mock.patch('cirrus.release.os.getcwd')
     @mock.patch('cirrus.release.get_active_branch')
-    def test_build_and_upload(self, mock_get_active_branch):
+    def test_build_and_upload(self, mock_get_active_branch, mock_cwd):
         """
         Ensures the build_and_upload command can be ran
         """
@@ -288,10 +289,11 @@ class ReleaseBuildAndUploadTest(unittest.TestCase):
         mock_head = mock.Mock()
         mock_head.name = 'release/0.0.0'
         mock_get_active_branch.return_value = mock_head
+        mock_cwd.return_value = 'cirrus'
         build_and_upload(opts)
         self.assertFalse(self.mock_get_active_sha.called)
         self.mock_local.assert_called_with(
-            'python setup.py egg_info  bdist_wheel upload -r local',
+            'cirrus/venv/bin/python setup.py egg_info  bdist_wheel upload -r local',
             capture=True
         )
 
@@ -313,7 +315,8 @@ class ReleaseBuildAndUploadTest(unittest.TestCase):
         self.assertFalse(self.mock_get_active_sha.called)
         self.assertFalse(self.mock_local.called)
 
-    def test_build_and_upload_dev(self):
+    @mock.patch('cirrus.release.os.getcwd')
+    def test_build_and_upload_dev(self, mock_cwd):
         """
         Ensures the build_and_upload command can be ran with the 'dev' option
         for creating pre-releases (git sha tagged builds)
@@ -321,10 +324,11 @@ class ReleaseBuildAndUploadTest(unittest.TestCase):
         self.mock_get_active_sha.return_value = 'deadbee'
         opts = mock.Mock()
         opts.dev = True
+        mock_cwd.return_value = 'cirrus'
         build_and_upload(opts)
         self.assertTrue(self.mock_get_active_sha.called)
         self.mock_local.assert_called_with(
-            'python setup.py egg_info --tag-build ".deadbee" bdist_wheel upload -r local',
+            'cirrus/venv/bin/python setup.py egg_info --tag-build ".deadbee" bdist_wheel upload -r local',
             capture=True
         )
 

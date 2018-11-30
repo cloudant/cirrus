@@ -778,8 +778,16 @@ def build_and_upload(opts):
             raise RuntimeError(msg)
         tag_option = ''
     LOGGER.info("Building and uploading release...")
-    cmd = 'python setup.py egg_info {} bdist_wheel upload -r local'
-    local(cmd.format(tag_option), capture=True)
+    config = load_configuration()
+    working_dir = os.getcwd()
+    venv_py_path = os.path.join(
+        working_dir,
+        config.venv_name(),
+        'bin',
+        'python'
+    )
+    cmd = '{} setup.py egg_info {} bdist_wheel upload -r local'
+    local(cmd.format(venv_py_path, tag_option), capture=True)
     LOGGER.info("...Build and upload complete")
 
 
