@@ -66,6 +66,7 @@ class BuildCommandTests(unittest.TestCase):
         self.mock_conf.pypi_url = mock.Mock()
         self.mock_conf.pypi_url.return_value = self.pypi_url_value
         self.mock_conf.pip_options = mock.Mock(return_value=None)
+        self.mock_conf.venv_name.return_value = 'venv'
         self.mock_local = self.local_patcher.start()
         self.mock_os_exists = self.os_path_exists_patcher.start()
         self.mock_os_exists.return_value = False

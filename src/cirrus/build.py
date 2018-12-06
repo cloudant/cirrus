@@ -98,7 +98,6 @@ def execute_build(opts):
     build_params = config.get('build', {})
 
     # we have custom build controls in the cirrus.conf
-    venv_name = build_params.get('virtualenv_name', 'venv')
     reqs_name = build_params.get('requirements_file', 'requirements.txt')
     extra_reqs = build_params.get('extra_requirements', '')
     extra_reqs = [x.strip() for x in extra_reqs.split(',') if x.strip()]
@@ -106,7 +105,7 @@ def execute_build(opts):
         extra_reqs.extend(opts.extras)
         extra_reqs = set(extra_reqs)  # dedupe
 
-    venv_path = os.path.join(working_dir, venv_name)
+    venv_path = os.path.join(working_dir, config.venv_name())
     venv_bin_path = os.path.join(venv_path, 'bin', 'python')
     venv_command = os.path.join(
         cirrus_home(),
@@ -216,7 +215,7 @@ def execute_build(opts):
         LOGGER.info('running python setup.py develop...')
         local(
             '. ./{0}/bin/activate && python setup.py develop'.format(
-                venv_name
+                config.venv_name()
             )
         )
 

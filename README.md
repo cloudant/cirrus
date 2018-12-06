@@ -65,7 +65,7 @@ Package Configuration Files:
 ============================
 
 The per package controls used by cirrus live in a cirrus.conf file in the top level of the repo you use with cirrus.
-This file, coupled with the cirrus setup.py template and command line tools dictate the behaviour of the cirrus commands within the package. Details for the cirrus config are in the (TBA) Configuration.MD file
+This file, coupled with the cirrus setup.py template and command line tools dictate the behaviour of the cirrus commands within the package. Details for the cirrus config are in the [CONFIGURATION.md](CONFIGURATION.md) file
 
 
 Cirrus Commands:

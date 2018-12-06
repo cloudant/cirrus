@@ -10,6 +10,7 @@ import os
 import sys
 import datetime
 import itertools
+import shutil
 from collections import OrderedDict
 from fabric.operations import local
 import pluggage.registry
@@ -580,7 +581,7 @@ def _trigger_jenkins_release(config, new_version, level):
 
 
 def upload_release(opts):
-    raise RuntimeError('Command no longer supported. Use build_and_release')
+    raise RuntimeError('Command no longer supported. Use build_and_upload')
 
 
 def merge_release(opts):
@@ -758,14 +759,35 @@ def build_and_upload(opts):
     be ran with a '--tag-build' option which appends the current git sha to the
     end of the release number (MAJOR.MINOR.MICRO.SHA).
     """
+    # delete any existing build directory if it exists
+    if os.path.isdir('build'):
+        shutil.rmtree('build')
+
     if opts.dev:
         active_sha = get_active_commit_sha('.')
         tag_option = '--tag-build ".{}"'.format(active_sha)
     else:
+        # check that the active branch is a release branch, fail out with
+        # message if not
+        if not get_active_branch('.').name.startswith('release'):
+            msg = (
+                'Must be on a release branch to make a release. If you '
+                'intended to make a prerelease, re-run this command with the '
+                '--dev option'
+            )
+            raise RuntimeError(msg)
         tag_option = ''
     LOGGER.info("Building and uploading release...")
-    cmd = 'python setup.py egg_info {} bdist_wheel upload -r local'
-    local(cmd.format(tag_option), capture=True)
+    config = load_configuration()
+    working_dir = os.getcwd()
+    venv_py_path = os.path.join(
+        working_dir,
+        config.venv_name(),
+        'bin',
+        'python'
+    )
+    cmd = '{} setup.py egg_info {} bdist_wheel upload -r local'
+    local(cmd.format(venv_py_path, tag_option), capture=True)
     LOGGER.info("...Build and upload complete")
 
 

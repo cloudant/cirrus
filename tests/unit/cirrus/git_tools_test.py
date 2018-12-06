@@ -4,6 +4,8 @@ tests for git_tools
 import mock
 import unittest
 
+from git.remote import PushInfo
+
 from cirrus.git_tools import branch
 from cirrus.git_tools import checkout_and_pull
 from cirrus.git_tools import get_active_branch
@@ -41,8 +43,12 @@ class GitToolsTest(unittest.TestCase):
         self.mock_repo.head.commit.hexsha = 'HEAD_SHA'
         self.mock_repo.iter_commits = mock.Mock()
         self.mock_repo.iter_commits.return_value = self.mock_commits
+        mock_push_return = mock.Mock()
+        mock_push_return.flags = PushInfo.NEW_HEAD
+        mock_push_return.ERROR = PushInfo.ERROR
         self.mock_repo.remotes.origin.push.side_effect = lambda x: [
-            mock.Mock()]
+            mock_push_return
+        ]
         self.mock_repo.tags = self.mock_tags
         self.patch_git = mock.patch('cirrus.git_tools.git')
         self.mock_git = self.patch_git.start()

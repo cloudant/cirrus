@@ -63,9 +63,6 @@ def build_docs(make_opts=None):
     """
     LOGGER.info('Building docs')
     config = load_configuration()
-    build_params = config.get('build', {})
-    venv_name = build_params.get('virtualenv_name', 'venv')
-
     try:
         docs_root = os.path.join(
             os.getcwd(),
@@ -84,7 +81,7 @@ def build_docs(make_opts=None):
         # additional args were passed after --docs. Pass these to make
         cmd = 'cd {} && make {}'.format(docs_root, ' '.join(make_opts))
 
-    local('. ./{}/bin/activate && {}'.format(venv_name, cmd))
+    local('. ./{}/bin/activate && {}'.format(config.venv_name(), cmd))
     LOGGER.info('Build command was "{}"'.format(cmd))
 
 
