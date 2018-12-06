@@ -10,7 +10,7 @@
 
 : ${CIRRUS_PYPI_URL?"is not set! Hint: https://user@us.ibm.com:password@na.artifactory.swg-devops.com/artifactory/api/pypi/wcp-sapi-pypi-virtual/simple)"}
 
-CIRRUS_PACKAGE="cirrus-cli==2.0.0"
+CIRRUS_PACKAGE="cirrus-cli==2.0.2"
 CIRRUS_INSTALL_DIR="${HOME}/.cirrus"
 CIRRUS_DEFAULT_USER="${USER}"
 
