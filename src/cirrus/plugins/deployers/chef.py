@@ -21,7 +21,6 @@ attributes=thing.application.version
 """
 import os
 
-from fabric.operations import run
 from cirrus.fabric_helpers import FabricHelper
 from cirrus.logger import get_logger
 from cirrus.deploy_plugins import Deployer
@@ -120,8 +119,12 @@ class ChefServerDeployer(Deployer):
 
         for node in nodes:
             LOGGER.info("Running chef-client on {}".format(node))
-            with FabricHelper(node, opts['chef_client_user'], opts['chef_client_keyfile']):
-                run('sudo chef-client')
+            with FabricHelper(
+                node,
+                opts['chef_client_user'],
+                opts['chef_client_keyfile']
+            ) as fh:
+                fh.run('sudo chef-client')
 
     def _find_nodes(self, args):
         """

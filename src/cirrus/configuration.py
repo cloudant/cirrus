@@ -15,7 +15,7 @@ import os
 from cirrus.gitconfig import load_gitconfig
 from cirrus.environment import repo_directory
 import subprocess
-import ConfigParser
+import configparser
 import pluggage.registry
 
 
@@ -52,7 +52,7 @@ class Configuration(dict):
         Reread the cirrus config file
 
         """
-        self.parser = ConfigParser.RawConfigParser()
+        self.parser = configparser.RawConfigParser()
         self.parser.read(self.config_file)
         for section in self.parser.sections():
             self.setdefault(section, {})
@@ -103,7 +103,7 @@ class Configuration(dict):
         return validator(self.gitconfig.get_param(section, param))
 
     def list_gitconfig_params(self, section='cirrus'):
-        return self.gitconfig[section].keys()
+        return list(self.gitconfig[section].keys())
 
     def has_section(self, section):
         return section in self

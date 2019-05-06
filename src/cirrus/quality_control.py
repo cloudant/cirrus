@@ -6,10 +6,10 @@ Command to run quality control via pylint, pep8, pyflakes
 import sys
 from argparse import ArgumentParser
 
-from git_tools import get_diff_files
-from pylint_tools import pep8_file
-from pylint_tools import pyflakes_file
-from pylint_tools import pylint_file
+from .git_tools import get_diff_files
+from .pylint_tools import pep8_file
+from .pylint_tools import pyflakes_file
+from .pylint_tools import pylint_file
 from cirrus.configuration import load_configuration
 from cirrus.logger import get_logger
 

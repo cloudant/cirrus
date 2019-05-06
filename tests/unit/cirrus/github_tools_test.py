@@ -2,8 +2,7 @@
 tests for github_tools
 '''
 import json
-import mock
-import unittest
+from unittest import TestCase, mock
 import subprocess
 
 from cirrus.github_tools import create_pull_request
@@ -11,7 +10,8 @@ from cirrus.github_tools import current_branch_mark_status
 from cirrus.github_tools import get_releases
 from .harnesses import _repo_directory
 
-class GithubToolsTest(unittest.TestCase):
+
+class GithubToolsTest(TestCase):
     """
     _GithubToolsTest_
     """
@@ -67,11 +67,11 @@ class GithubToolsTest(unittest.TestCase):
                             self.repo,
                             {'title': 'Test', 'body': 'This is a test'},
                             'token')
-                        self.failUnless(mock_config_load.called)
-                        self.failUnless(mock_get_branch.called)
-                        self.failUnless(mock_post.called)
-                        self.failUnless(mock_dumps.called)
-                        self.failUnlessEqual(result, resp_json['html_url'])
+                        self.assertTrue(mock_config_load.called)
+                        self.assertTrue(mock_get_branch.called)
+                        self.assertTrue(mock_post.called)
+                        self.assertTrue(mock_dumps.called)
+                        self.assertEqual(result, resp_json['html_url'])
 
     def test_get_releases(self):
         """
@@ -87,8 +87,8 @@ class GithubToolsTest(unittest.TestCase):
         mock_req.json.return_value = resp_json
         self.mock_get.return_value = mock_req
         result = get_releases(self.owner, self.repo, 'token')
-        self.failUnless(self.mock_get.called)
-        self.failUnless('tag_name' in result[0])
+        self.assertTrue(self.mock_get.called)
+        self.assertIn('tag_name', result[0])
 
     @mock.patch('cirrus.github_tools.load_configuration')
     @mock.patch("cirrus.github_tools.requests.post")
@@ -113,7 +113,7 @@ class GithubToolsTest(unittest.TestCase):
 
         current_branch_mark_status(_repo_directory(), "success")
 
-        self.failUnless(mock_post.called)
+        self.assertTrue(mock_post.called)
 
 if __name__ == "__main__":
     unittest.main()

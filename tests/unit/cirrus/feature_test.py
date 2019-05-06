@@ -1,18 +1,16 @@
 """
 feature command tests
-
 """
-import mock
 import os
 import tempfile
-import unittest
+from unittest import TestCase, mock
 
 from cirrus.feature import new_feature_branch, new_pr
 
-from harnesses import CirrusConfigurationHarness, write_cirrus_conf
+from .harnesses import CirrusConfigurationHarness, write_cirrus_conf
 
 
-class FeatureCommandTest(unittest.TestCase):
+class FeatureCommandTest(TestCase):
     """
     Test Case for new_feature_branch function
     """
@@ -58,10 +56,10 @@ class FeatureCommandTest(unittest.TestCase):
         opts.push = False
 
         new_feature_branch(opts)
-        self.failUnless(self.mock_pull.called)
+        self.assertTrue(self.mock_pull.called)
         self.assertEqual(self.mock_pull.call_args[0][1], 'develop')
-        self.failUnless(self.mock_branch.called)
-        self.failIf(self.mock_push.called)
+        self.assertTrue(self.mock_branch.called)
+        self.assertFalse(self.mock_push.called)
 
     def test_new_feature_branch_push(self):
         """
@@ -76,10 +74,10 @@ class FeatureCommandTest(unittest.TestCase):
         opts.push = True
 
         new_feature_branch(opts)
-        self.failUnless(self.mock_pull.called)
+        self.assertTrue(self.mock_pull.called)
         self.assertEqual(self.mock_pull.call_args[0][1], 'develop')
-        self.failUnless(self.mock_branch.called)
-        self.failUnless(self.mock_push.called)
+        self.assertTrue(self.mock_branch.called)
+        self.assertTrue(self.mock_push.called)
 
     def test_new_pr(self):
         """
@@ -93,9 +91,9 @@ class FeatureCommandTest(unittest.TestCase):
 
         with mock.patch('cirrus.feature.create_pull_request') as mock_pr:
             new_pr(opts)
-            self.failUnless('body' in mock_pr.call_args[0][1])
-            self.failUnless('title' in mock_pr.call_args[0][1])
-            self.failUnless(mock_pr.called)
+            self.assertIn('body', mock_pr.call_args[0][1])
+            self.assertIn('title', mock_pr.call_args[0][1])
+            self.assertTrue(mock_pr.called)
 
 
 if __name__ == '__main__':

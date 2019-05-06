@@ -128,7 +128,7 @@ class GitHubContext(object):
         if branch is None:
             branch = self.repo.active_branch.name
 
-        LOGGER.info(u"Setting CI status for branch {} to {}".format(branch, state))
+        LOGGER.info("Setting CI status for branch {} to {}".format(branch, state))
 
         sha = self.repo.head.commit.hexsha
 
@@ -138,7 +138,7 @@ class GitHubContext(object):
             # probably be to push a detached head.
             push(self.repo_dir)
         except RuntimeError as ex:
-            if "rejected" not in unicode(ex):
+            if "rejected" not in str(ex):
                 raise
 
         url = "https://api.github.com/repos/{org}/{repo}/statuses/{sha}".format(
@@ -211,7 +211,7 @@ class GitHubContext(object):
         # Check to make sure that we haven't errored out.
         for r in ret:
             if r.flags >= r.ERROR:
-                raise RuntimeError(unicode(r.summary))
+                raise RuntimeError(str(r.summary))
         return ret
 
     def push_branch_with_retry(self, branch_name=None, attempts=300, cooloff=2):
@@ -338,7 +338,7 @@ class GitHubContext(object):
         """
         feature_pfix = "remotes/origin/{}".format(self.config.gitflow_feature_prefix())
         branches = self.iter_git_branches(merged)
-        branches = itertools.ifilter(lambda x: x.startswith(feature_pfix), branches)
+        branches = filter(lambda x: x.startswith(feature_pfix), branches)
         return branches
 
     def pull_requests(self, user=None):
@@ -365,7 +365,7 @@ class GitHubContext(object):
         data = resp.json()
         gen = iter(data)
         if user:
-            gen = itertools.ifilter(lambda x: x['user']['login'] == user, gen)
+            gen = filter(lambda x: x['user']['login'] == user, gen)
         for row in gen:
             yield row
 
@@ -477,7 +477,7 @@ def current_branch_mark_status(repo_dir, state):
 
     """
 
-    LOGGER.info(u"Setting CI status for current branch to {}".format(state))
+    LOGGER.info("Setting CI status for current branch to {}".format(state))
 
     config = load_configuration()
     token = get_github_auth()[1]
@@ -489,7 +489,7 @@ def current_branch_mark_status(repo_dir, state):
         # probably be to push a detached head.
         push(repo_dir)
     except RuntimeError as ex:
-        if "rejected" not in unicode(ex):
+        if "rejected" not in str(ex):
             raise
 
     url = "https://api.github.com/repos/{org}/{repo}/statuses/{sha}".format(

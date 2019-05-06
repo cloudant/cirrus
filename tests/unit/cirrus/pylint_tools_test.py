@@ -1,62 +1,63 @@
 '''
 pylint_tools tests
 '''
-import mock
-import unittest
+from unittest import TestCase, mock
+
+from pep8 import StyleGuide
 
 from cirrus.pylint_tools import pep8_file
 from cirrus.pylint_tools import pyflakes_file
 from cirrus.pylint_tools import pylint_file
 
 
-class PylintToolsTest(unittest.TestCase):
+class PylintToolsTest(TestCase):
 
     def setUp(self):
-        """setup mocks"""
-        self.filename = 'hello.py'
-        self.patch_local = mock.patch('cirrus.pylint_tools.local')
-        self.patch_hide = mock.patch('cirrus.pylint_tools.hide')
-        self.patch_settings = mock.patch('cirrus.pylint_tools.settings')
-
-        self.mock_local = self.patch_local.start()
-        self.mock_hide = self.patch_hide.start()
-        self.mock_settings = self.patch_settings.start()
+        self.filenames = ['hello.py', 'goodbye.py']
+        patch_run = mock.patch('cirrus.pylint_tools.run')
+        self.mock_run = patch_run.start()
+        patch_pep8 = mock.patch('cirrus.pylint_tools.pep8')
+        self.mock_pep8 = patch_pep8.start()
 
     def tearDown(self):
-        """teardown mocks"""
-        self.patch_local.stop()
-        self.patch_hide.stop()
-        self.patch_settings.stop()
+        mock.patch.stopall()
 
     def test_pylint_file(self):
-        """
-        _test_pylint_file_
-        """
-        results = pylint_file(self.filename)
-        self.failUnless(self.mock_local.called)
-        self.failUnless(self.mock_hide.called)
-        self.failUnless(self.mock_settings.called)
-        self.failUnlessEqual(results[0], self.filename)
+        results = pylint_file(self.filenames)
+        self.mock_run.assert_called_with(
+            'pylint {}'.format(' '.join(self.filenames)),
+            hide=True,
+            warn=True
+        )
+        self.assertEqual(results[0], self.filenames)
 
     def test_pyflakes_file(self):
-        """
-        _test_pyflakes_file_
-        """
-        results = pyflakes_file(self.filename)
-        self.failUnless(self.mock_local.called)
-        self.failUnless(self.mock_hide.called)
-        self.failUnless(self.mock_settings.called)
-        self.failUnlessEqual(results[0], self.filename)
+        results = pyflakes_file(self.filenames)
+        self.mock_run.assert_called_with(
+            'pyflakes {}'.format(' '.join(self.filenames)),
+            hide=True,
+            warn=True
+        )
+        self.assertEqual(results[0], self.filenames)
 
-    def pep8_file(self):
-        """
-        _test_pyflakes_file_
-        """
-        results = pep8_file(self.filename)
-        self.failUnless(self.mock_local.called)
-        self.failUnless(self.mock_hide.called)
-        self.failUnless(self.mock_settings.called)
-        self.failUnlessEqual(results[0], self.filename)
+    def test_pep8_file(self):
+        mock_style_guide = mock.Mock(spec=StyleGuide)
+        self.mock_pep8.StyleGuide.return_value = mock_style_guide
 
-if __name__ == "__main__":
-    unittest.main()
+        results = pep8_file(self.filenames)
+        mock_style_guide.check_files.assert_called_with(self.filenames)
+        self.assertFalse(
+            mock_style_guide.check_files.return_value.print_statistics.called
+        )
+        self.assertEqual(results[0], self.filenames)
+
+    def test_pep8_file_verbose(self):
+        mock_style_guide = mock.Mock(spec=StyleGuide)
+        self.mock_pep8.StyleGuide.return_value = mock_style_guide
+
+        results = pep8_file(self.filenames, verbose=True)
+        mock_style_guide.check_files.assert_called_with(self.filenames)
+        self.assertTrue(
+            mock_style_guide.check_files.return_value.print_statistics.called
+        )
+        self.assertEqual(results[0], self.filenames)

@@ -3,16 +3,12 @@
 harnesses
 
 Common/reusable test harnesses
-
 """
-
-
 import os
-import unittest
+from unittest import mock
 import tempfile
-import mock
 import subprocess
-import ConfigParser
+import configparser
 
 from cirrus.configuration import Configuration
 
@@ -21,7 +17,7 @@ def _repo_directory():
     command = ['git', 'rev-parse', '--show-toplevel']
     process = subprocess.Popen(command, stdout=subprocess.PIPE)
     outp, err = process.communicate()
-    return outp.strip()
+    return outp.strip().decode('utf-8')
 
 
 def write_cirrus_conf(config_file, **sections):
@@ -38,10 +34,10 @@ def write_cirrus_conf(config_file, **sections):
     settings={'package': {'name': 'package_name'} }
 
     """
-    parser = ConfigParser.RawConfigParser()
-    for section, settings in sections.iteritems():
+    parser = configparser.RawConfigParser()
+    for section, settings in sections.items():
         parser.add_section(section)
-        for key, value in settings.iteritems():
+        for key, value in settings.items():
             parser.set(section, key, value)
 
     with open(config_file, 'w') as handle:

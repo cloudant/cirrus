@@ -3,7 +3,7 @@
 keyring module plugin
 
 """
-import keyring
+from . import keyring
 from cirrus.creds_plugin import CredsPlugin
 
 

@@ -5,5 +5,5 @@ _uploaders_
 Release uploader plugins
 
 """
-import fabric_put
-import pypi
+from . import fabric_put
+from . import pypi

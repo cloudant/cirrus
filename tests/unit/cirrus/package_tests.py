@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 """tests for package commands """
-import unittest
-import mock
+from unittest import TestCase, mock, skip
 import os
 import json
 import tempfile
-import ConfigParser
+import configparser
 
 from cirrus.package import (
     create_files,
@@ -18,10 +17,10 @@ from cirrus.package import (
 
 )
 
-from harnesses import CirrusConfigurationHarness
+from .harnesses import CirrusConfigurationHarness
 
 
-class BuildParserTest(unittest.TestCase):
+class BuildParserTest(TestCase):
     """test for cli parser"""
     def test_build_parser(self):
         argslist = ['init']
@@ -35,7 +34,7 @@ class BuildParserTest(unittest.TestCase):
         self.assertEqual(opts.develop, 'develop')
 
 
-class GitFunctionTests(unittest.TestCase):
+class GitFunctionTests(TestCase):
     """
     tests for git util functions
     """
@@ -62,8 +61,8 @@ class GitFunctionTests(unittest.TestCase):
         """test backup_file"""
         backup_file(self.bak_file)
         files = os.listdir(self.repo)
-        self.failUnless('backmeup' in files)
-        self.failUnless('backmeup.BAK' in files)
+        self.assertIn('backmeup', files)
+        self.assertIn('backmeup.BAK', files)
 
     @mock.patch('cirrus.package.branch')
     @mock.patch('cirrus.package.push')
@@ -77,13 +76,13 @@ class GitFunctionTests(unittest.TestCase):
 
         setup_branches(opts)
         self.assertEqual(mock_branch.call_count, 2)
-        self.failUnless(mock_push.called)
-        self.failUnless(mock_active.called)
+        self.assertTrue(mock_push.called)
+        self.assertTrue(mock_active.called)
 
         mock_push.reset_mock()
         opts.no_remote = True
         setup_branches(opts)
-        self.failUnless(not mock_push.called)
+        self.assertTrue(not mock_push.called)
 
     @mock.patch('cirrus.package.commit_files_optional_push')
     @mock.patch('cirrus.package.get_tags')
@@ -100,7 +99,7 @@ class GitFunctionTests(unittest.TestCase):
         mock_tags.return_value = ['0.0.1']
         commit_and_tag(opts, 'file1', 'file2')
 
-        self.failUnless(mock_commit.called)
+        self.assertTrue(mock_commit.called)
         mock_commit.assert_has_calls([
             mock.call(
                 self.repo,
@@ -110,17 +109,17 @@ class GitFunctionTests(unittest.TestCase):
                 'file2'
             )
         ])
-        self.failUnless(mock_tags.called)
-        self.failUnless(mock_tag_rel.called)
-        self.failUnless(mock_branch.called)
+        self.assertTrue(mock_tags.called)
+        self.assertTrue(mock_tag_rel.called)
+        self.assertTrue(mock_branch.called)
 
         # tag exists
         opts.version = '0.0.1'
         mock_tag_rel.reset_mock()
         commit_and_tag(opts, 'file1', 'file2')
-        self.failUnless(not mock_tag_rel.called)
+        self.assertTrue(not mock_tag_rel.called)
 
-class CreateFilesTest(unittest.TestCase):
+class CreateFilesTest(TestCase):
     """mocked create_files function tests"""
     def setUp(self):
         """
@@ -153,35 +152,38 @@ class CreateFilesTest(unittest.TestCase):
         opts.history_file = 'HISTORY.md'
         opts.package = 'unittests'
         opts.create_version_file = False
+        opts.desc = 'testing123'
+        opts.org = 'IBM Cloudant'
+        opts.develop = 'test-develop'
 
         create_files(opts)
 
         dir_list = os.listdir(self.repo)
-        self.failUnless('cirrus.conf' in dir_list)
-        self.failUnless('HISTORY.md' in dir_list)
-        self.failUnless('MANIFEST.in' in dir_list)
-        self.failUnless('setup.py' in dir_list)
+        self.assertIn('cirrus.conf', dir_list)
+        self.assertIn('HISTORY.md', dir_list)
+        self.assertIn('MANIFEST.in', dir_list)
+        self.assertIn('setup.py', dir_list)
 
         cirrus_conf = os.path.join(self.repo, 'cirrus.conf')
-        config = ConfigParser.RawConfigParser()
+        config = configparser.RawConfigParser()
         config.read(cirrus_conf)
         self.assertEqual(config.get('package', 'name'), opts.package)
         self.assertEqual(config.get('package', 'version'), opts.version)
 
         history = os.path.join(self.repo, 'HISTORY.md')
         with open(history, 'r') as handle:
-            self.failUnless('CIRRUS_HISTORY_SENTINEL' in handle.read())
+            self.assertIn('CIRRUS_HISTORY_SENTINEL', handle.read())
 
         manifest = os.path.join(self.repo, 'MANIFEST.in')
         with open(manifest, 'r') as handle:
             content = handle.read()
-            self.failUnless('include requirements.txt' in content)
-            self.failUnless('include cirrus.conf' in content)
-            self.failUnless('include steve/*' in content)
+            self.assertIn('include requirements.txt', content)
+            self.assertIn('include cirrus.conf', content)
+            self.assertIn('include steve/*', content)
 
         version = os.path.join(self.repo, 'src', 'unittests', '__init__.py')
         with open(version, 'r') as handle:
-            self.failUnless(opts.version in handle.read())
+            self.assertTrue(opts.version in handle.read())
 
     def test_create_files_with_version(self):
         """test create_files call and content of files"""
@@ -194,41 +196,44 @@ class CreateFilesTest(unittest.TestCase):
         opts.templates = ['include steve/*']
         opts.history_file = 'HISTORY.md'
         opts.package = 'unittests'
+        opts.desc = 'testing123'
+        opts.org = 'IBM Cloudant'
+        opts.develop = 'test-develop'
 
         version = os.path.join(self.repo, 'src', 'unittests', '__init__.py')
         os.system('rm -f {}'.format(version))
         create_files(opts)
 
         dir_list = os.listdir(self.repo)
-        self.failUnless('cirrus.conf' in dir_list)
-        self.failUnless('HISTORY.md' in dir_list)
-        self.failUnless('MANIFEST.in' in dir_list)
-        self.failUnless('setup.py' in dir_list)
+        self.assertIn('cirrus.conf', dir_list)
+        self.assertIn('HISTORY.md', dir_list)
+        self.assertIn('MANIFEST.in', dir_list)
+        self.assertIn('setup.py', dir_list)
 
         cirrus_conf = os.path.join(self.repo, 'cirrus.conf')
-        config = ConfigParser.RawConfigParser()
+        config = configparser.RawConfigParser()
         config.read(cirrus_conf)
         self.assertEqual(config.get('package', 'name'), opts.package)
         self.assertEqual(config.get('package', 'version'), opts.version)
 
         history = os.path.join(self.repo, 'HISTORY.md')
         with open(history, 'r') as handle:
-            self.failUnless('CIRRUS_HISTORY_SENTINEL' in handle.read())
+            self.assertIn('CIRRUS_HISTORY_SENTINEL', handle.read())
 
         manifest = os.path.join(self.repo, 'MANIFEST.in')
         with open(manifest, 'r') as handle:
             content = handle.read()
-            self.failUnless('include requirements.txt' in content)
-            self.failUnless('include cirrus.conf' in content)
-            self.failUnless('include steve/*' in content)
+            self.assertIn('include requirements.txt', content)
+            self.assertIn('include cirrus.conf', content)
+            self.assertIn('include steve/*', content)
 
         version = os.path.join(self.repo, 'src', 'unittests', '__init__.py')
         with open(version, 'r') as handle:
-            self.failUnless(opts.version in handle.read())
+            self.assertTrue(opts.version in handle.read())
 
 
-@unittest.skip("Integ test not unit test")
-class PackageInitCommandIntegTest(unittest.TestCase):
+@skip("Integ test not unit test")
+class PackageInitCommandIntegTest(TestCase):
     """test case for package init command """
 
     def setUp(self):
@@ -267,7 +272,7 @@ class PackageInitCommandIntegTest(unittest.TestCase):
         opts = build_parser(argslist)
         init_package(opts)
         conf = os.path.join(self.repo, 'cirrus.conf')
-        self.failUnless(os.path.exists(conf))
+        self.assertTrue(os.path.exists(conf))
 
     @mock.patch('cirrus.editor_plugin.load_configuration')
     def test_project_sublime_command(self, mock_lc):
@@ -287,19 +292,19 @@ class PackageInitCommandIntegTest(unittest.TestCase):
         opts = build_parser(argslist)
         build_project(opts)
         proj = os.path.join(self.repo, 'unittests.sublime-project')
-        self.failUnless(os.path.exists(proj))
+        self.assertTrue(os.path.exists(proj))
         with open(proj, 'r') as handle:
             data = json.load(handle)
-        self.failUnless('folders' in data)
-        self.failUnless(data['folders'])
-        self.failUnless('path' in data['folders'][0])
+        self.assertIn('folders', data)
+        self.assertTrue(data['folders'])
+        self.assertIn('path', data['folders'][0])
         self.assertEqual(data['folders'][0]['path'], self.repo)
 
         build = data['build_systems'][0]
-        self.failUnless('name' in build)
+        self.assertIn('name', build)
         self.assertEqual(build['name'], "cirrus virtualenv")
-        self.failUnless('env' in build)
-        self.failUnless('PYTHONPATH' in build['env'])
+        self.assertIn('env', build)
+        self.assertIn('PYTHONPATH', build['env'])
         self.assertEqual(build['env']['PYTHONPATH'], self.repo)
 
 if __name__ == '__main__':

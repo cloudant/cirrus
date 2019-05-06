@@ -3,13 +3,12 @@
 build command test coverage
 """
 
-import unittest
-import mock
+from unittest import TestCase, mock
 
 from cirrus.build import execute_build, build_parser
 
 
-class BuildParserTests(unittest.TestCase):
+class BuildParserTests(TestCase):
     """test build_parser"""
 
     def test_build_parser(self):
@@ -25,7 +24,7 @@ class BuildParserTests(unittest.TestCase):
 
         argv = ['build', '--no-setup-develop']
         opts = build_parser(argv)
-        self.failUnless(opts.nosetupdevelop)
+        self.assertTrue(opts.nosetupdevelop)
 
         argv = [
             'build',
@@ -40,12 +39,12 @@ class BuildParserTests(unittest.TestCase):
         )
 
 
-class BuildCommandTests(unittest.TestCase):
+class BuildCommandTests(TestCase):
     """test coverage for build command code"""
     def setUp(self):
         """set up patchers and mocks"""
         self.conf_patcher = mock.patch('cirrus.build.load_configuration')
-        self.local_patcher = mock.patch('cirrus.build.local')
+        self.local_patcher = mock.patch('cirrus.build.run')
         self.os_path_exists_patcher = mock.patch('cirrus.build.os.path.exists')
         self.os_cwd_patcher = mock.patch('cirrus.build.os.getcwd')
         self.pypi_auth_patcher = mock.patch('cirrus.build.get_pypi_auth')
@@ -224,7 +223,3 @@ class BuildCommandTests(unittest.TestCase):
             mock.call('CWD/venv/bin/pip install -i https://PYPIUSERNAME:TOKEN@PYPIURL/simple --upgrade -r requirements.txt'),
             mock.call('. ./venv/bin/activate && python setup.py develop')
         ])
-
-
-if __name__ == '__main__':
-    unittest.main()

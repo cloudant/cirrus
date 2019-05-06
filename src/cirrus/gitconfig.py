@@ -36,7 +36,7 @@ def shell_command(command):
     if process.returncode != 0:
         raise RuntimeError(stdout)
     else:
-        return "\n".join(stdout.splitlines())
+        return "\n".join(stdout.decode('utf-8').splitlines())
 
 
 class GitConfigSection(object):
@@ -50,15 +50,15 @@ class GitConfigSection(object):
 
     def keys(self):
         """list parameter keys in section"""
-        return dict(self.config)[self.section].keys()
+        return list(dict(self.config)[self.section].keys())
 
     def values(self):
         """return all values in section"""
-        return dict(self.config)[self.section].values()
+        return list(dict(self.config)[self.section].values())
 
     def items(self):
         """return key, value tuples of items in section"""
-        return dict(self.config)[self.section].items()
+        return list(dict(self.config)[self.section].items())
 
     def get(self, key, default=None):
         return dict(self.config)[self.section].get(key, default)
@@ -75,7 +75,7 @@ class GitConfigSection(object):
     def __str__(self):
         result = [
             "{0}.{1}={2}".format(self.section, k, v)
-            for k, v in self.items()
+            for k, v in list(self.items())
         ]
         return '\n'.join(result)
 
@@ -108,7 +108,7 @@ class GitConfig(dict):
     @property
     def sections(self):
         """list sections in the gitconfig"""
-        return self.keys()
+        return list(self.keys())
 
     def __getitem__(self, key):
         """override getitem operator to wrap section in GitConfigSection"""

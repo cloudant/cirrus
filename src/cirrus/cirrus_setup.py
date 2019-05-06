@@ -33,7 +33,7 @@ def ask_question(question, default=None, valid=None):
         to_ask += " [{0}]: ".format(default)
     else:
         to_ask += ": "
-    result = raw_input(to_ask)
+    result = input(to_ask)
     if result.strip() == '':
         if default is not None:
             result = default

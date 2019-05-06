@@ -6,7 +6,7 @@ Upload plugin that does a pypi sdist upload
 
 """
 import os
-from fabric.operations import local
+from invoke import run
 
 from cirrus.upload_plugins import Uploader
 from cirrus.logger import get_logger
@@ -36,4 +36,4 @@ class Pypi(Uploader):
             pypi_url = opts.pypi_url
             command += ' -r {}'.format(pypi_url)
         LOGGER.info("Executing {} ...".format(command))
-        local(command)
+        run(command)

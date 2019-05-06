@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 """
 release command tests
-
 """
 import os
-import unittest
+from unittest import TestCase, mock
 import tempfile
-import mock
 
 from cirrus.release import (
     artifact_name,
@@ -18,10 +16,10 @@ from cirrus.release import (
 from cirrus.configuration import Configuration
 from pluggage.errors import FactoryError
 
-from harnesses import CirrusConfigurationHarness, write_cirrus_conf
+from .harnesses import CirrusConfigurationHarness, write_cirrus_conf
 
 
-class ReleaseNewCommandTest(unittest.TestCase):
+class ReleaseNewCommandTest(TestCase):
     """
     Test Case for new_release function
     """
@@ -53,19 +51,15 @@ class ReleaseNewCommandTest(unittest.TestCase):
             os.system('rm -rf {0}'.format(self.dir))
 
     @mock.patch('cirrus.release.has_unstaged_changes')
-    @mock.patch('cirrus.release.get_active_branch')
+    @mock.patch('cirrus.release.remote_branch_exists')
     @mock.patch('cirrus.release.get_active_commit_sha')
     def test_new_release(
         self,
         mock_get_sha,
-        mock_get_branch,
+        mock_remote_branch_exists,
         mock_unstaged
     ):
-        """
-        _test_new_release_
-
-        """
-        mock_get_branch.return_value = mock.Mock()
+        mock_remote_branch_exists.return_value = False
         mock_get_sha.return_value = 'abc123'
         mock_unstaged.return_value = False
         opts = mock.Mock()
@@ -84,27 +78,25 @@ class ReleaseNewCommandTest(unittest.TestCase):
         new_conf.load()
         self.assertEqual(new_conf.package_version(), '1.2.4')
 
-        self.failUnless(self.mock_pull.called)
+        self.assertTrue(self.mock_pull.called)
         self.assertEqual(self.mock_pull.call_args[0][1], 'develop')
-        self.failUnless(self.mock_branch.called)
+        self.assertTrue(self.mock_branch.called)
         self.assertEqual(self.mock_branch.call_args[0][1], 'release/1.2.4')
-        self.failUnless(self.mock_commit.called)
+        self.assertTrue(self.mock_commit.called)
         self.assertEqual(self.mock_commit.call_args[0][2], 'cirrus.conf')
 
     @mock.patch('cirrus.release.has_unstaged_changes')
-    @mock.patch('cirrus.release.get_active_branch')
+    @mock.patch('cirrus.release.remote_branch_exists')
     @mock.patch('cirrus.release.get_active_commit_sha')
     def test_new_release_unstaged(
         self,
         mock_get_sha,
-        mock_get_branch,
+        mock_branch_exists,
         mock_unstaged
     ):
         """
         test new release fails on unstaged changes
-
         """
-        mock_get_branch.return_value = mock.Mock()
         mock_get_sha.return_value = 'abc123'
         mock_unstaged.return_value = True
         opts = mock.Mock()
@@ -116,7 +108,7 @@ class ReleaseNewCommandTest(unittest.TestCase):
         self.assertRaises(RuntimeError, new_release, opts)
 
 
-class ReleaseBuildCommandTest(unittest.TestCase):
+class ReleaseBuildCommandTest(TestCase):
     """
     test case for cirrus release build command
 
@@ -133,12 +125,12 @@ class ReleaseBuildCommandTest(unittest.TestCase):
         self.harness = CirrusConfigurationHarness('cirrus.release.load_configuration', self.config)
         self.harness.setUp()
 
-        self.patch_local =  mock.patch('cirrus.release.local')
-        self.mock_local = self.patch_local.start()
+        self.patch_run = mock.patch('cirrus.release.run')
+        self.mock_run = self.patch_run.start()
 
     def tearDown(self):
         self.harness.tearDown()
-        self.patch_local.stop()
+        self.patch_run.stop()
 
     @mock.patch('cirrus.release.artifact_name')
     @mock.patch('cirrus.release.get_active_commit_sha')
@@ -164,11 +156,11 @@ class ReleaseBuildCommandTest(unittest.TestCase):
             opts.dev = None
             result = build_release(opts)
             self.assertEqual(result, 'build_artifact')
-            self.failUnless(mock_os.path.exists.called)
+            self.assertTrue(mock_os.path.exists.called)
             self.assertEqual(mock_os.path.exists.call_args[0][0], 'build_artifact')
 
-            self.failUnless(self.mock_local.called)
-            self.assertEqual(self.mock_local.call_args[0][0], 'python setup.py bdist_wheel')
+            self.assertTrue(self.mock_run.called)
+            self.assertEqual(self.mock_run.call_args[0][0], 'python setup.py bdist_wheel')
 
     @mock.patch('cirrus.release.get_active_commit_sha')
     def test_build_command_with_tag(self, mock_git_sha):
@@ -185,20 +177,20 @@ class ReleaseBuildCommandTest(unittest.TestCase):
 
             result = build_release(opts)
             self.assertEqual(result, 'build_artifact')
-            self.failUnless(mock_os.path.exists.called)
+            self.assertTrue(mock_os.path.exists.called)
             self.assertEqual(
                 mock_os.path.exists.call_args[0][0],
                 'build_artifact'
             )
 
-            self.failUnless(self.mock_local.called)
+            self.assertTrue(self.mock_run.called)
             self.assertEqual(
-                self.mock_local.call_args[0][0],
+                self.mock_run.call_args[0][0],
                 "python setup.py egg_info --tag-build '.abc123' bdist_wheel"
             )
 
 
-class ReleaseUploadTest(unittest.TestCase):
+class ReleaseUploadTest(TestCase):
     """unittest coverage for upload command using plugins"""
     def setUp(self):
         self.dir = tempfile.mkdtemp()
@@ -241,7 +233,7 @@ class ReleaseUploadTest(unittest.TestCase):
         opts.test = False
         opts.target = None
         self.assertRaises(RuntimeError, upload_release, opts)
-        self.failIf(plugin.upload.called)
+        self.assertFalse(plugin.upload.called)
 
     @mock.patch('cirrus.release.os.path.exists')
     @mock.patch('cirrus.release.get_plugin')
@@ -265,37 +257,72 @@ class ReleaseUploadTest(unittest.TestCase):
         self.assertRaises(RuntimeError, upload_release, opts)
 
 
-class ReleaseBuildAndUploadTest(unittest.TestCase):
+class ReleaseBuildAndUploadTest(TestCase):
     def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.config = os.path.join(self.dir, 'cirrus.conf')
+        write_cirrus_conf(self.config,
+            **{
+                'package' :{'name': 'cirrus_unittest', 'version': '1.2.3'},
+                'github': {'develop_branch': 'develop', 'release_branch_prefix': 'release/'},
+                'pypi': {
+                    'pypi_upload_path': '/opt/pypi',
+                    'pypi_url': 'pypi.cloudant.com',
+                    'pypi_username': 'steve',
+                    'pypi_ssh_key': 'steves_creds'
+                }
+            }
+            )
+        self.harness = CirrusConfigurationHarness('cirrus.release.load_configuration', self.config)
+        self.harness.setUp()
+        self.artifact_name = artifact_name(self.harness.config)
+        self.runner_msg = (
+            'running egg_info\n'
+            '...'
+            'running upload\n'
+            'Submitting dist/cirrus_cli-2.0.2.test-py3-none-any.whl to artifactory url\n'
+            'Server response (200): OK\n'
+        )
         self.patch_get_active_sha = mock.patch(
             'cirrus.release.get_active_commit_sha'
         )
         self.mock_get_active_sha = self.patch_get_active_sha.start()
-        self.patch_local = mock.patch('cirrus.release.local')
-        self.mock_local = self.patch_local.start()
+        self.patch_run = mock.patch('cirrus.release.run')
+        self.mock_run = self.patch_run.start()
 
     def tearDown(self):
-        self.patch_get_active_sha.stop()
-        self.patch_local.stop()
+        mock.patch.stopall()
 
-    @mock.patch('cirrus.release.os.getcwd')
+    @mock.patch('cirrus.release.os')
     @mock.patch('cirrus.release.get_active_branch')
-    def test_build_and_upload(self, mock_get_active_branch, mock_cwd):
+    @mock.patch('builtins.print')
+    def test_build_and_upload(self, mock_print, mock_get_active_branch, mock_os):
         """
         Ensures the build_and_upload command can be ran
         """
+        self.mock_run.return_value.stdout = self.runner_msg
         opts = mock.Mock()
         opts.dev = False
         mock_head = mock.Mock()
         mock_head.name = 'release/0.0.0'
         mock_get_active_branch.return_value = mock_head
-        mock_cwd.return_value = 'cirrus'
+        mock_os.getcwd.return_value = 'cirrus'
+        mock_os.path.join.return_value = 'cirrus/venv/bin/python'
+        mock_os.path.isdir.return_value = False
+
         build_and_upload(opts)
         self.assertFalse(self.mock_get_active_sha.called)
-        self.mock_local.assert_called_with(
+        self.mock_run.assert_called_with(
             'cirrus/venv/bin/python setup.py egg_info  bdist_wheel upload -r local',
-            capture=True
+            hide='stdout',
+            echo=True
         )
+        mock_print.assert_has_calls([
+            mock.call(
+                'Submitting dist/cirrus_cli-2.0.2.test-py3-none-any.whl to'
+                ' artifactory url'
+            )
+        ])
 
     @mock.patch('cirrus.release.get_active_branch')
     def test_build_and_upload_not_on_release_branch(
@@ -313,27 +340,32 @@ class ReleaseBuildAndUploadTest(unittest.TestCase):
         mock_get_active_branch.return_value = mock_head
         self.assertRaises(RuntimeError, build_and_upload, opts)
         self.assertFalse(self.mock_get_active_sha.called)
-        self.assertFalse(self.mock_local.called)
+        self.assertFalse(self.mock_run.called)
 
-    @mock.patch('cirrus.release.os.getcwd')
-    def test_build_and_upload_dev(self, mock_cwd):
+    @mock.patch('cirrus.release.os')
+    def test_build_and_upload_dev(self, mock_os):
         """
         Ensures the build_and_upload command can be ran with the 'dev' option
         for creating pre-releases (git sha tagged builds)
         """
+        self.mock_run.return_value.stdout = self.runner_msg
         self.mock_get_active_sha.return_value = 'deadbee'
         opts = mock.Mock()
         opts.dev = True
-        mock_cwd.return_value = 'cirrus'
+        mock_os.getcwd.return_value = 'cirrus'
+        mock_os.path.join.return_value = 'cirrus/venv/bin/python'
+        mock_os.path.isdir.return_value = False
+
         build_and_upload(opts)
         self.assertTrue(self.mock_get_active_sha.called)
-        self.mock_local.assert_called_with(
+        self.mock_run.assert_called_with(
             'cirrus/venv/bin/python setup.py egg_info --tag-build ".deadbee" bdist_wheel upload -r local',
-            capture=True
+            hide='stdout',
+            echo=True
         )
 
 
-class ArtifactNameTests(unittest.TestCase):
+class ArtifactNameTests(TestCase):
     """
     Tests for artifact_name
     """
@@ -386,7 +418,3 @@ class ArtifactNameTests(unittest.TestCase):
             'dist/cirrus_unittest-1.2.3.somesortoftag-py2-none-any.whl',
             artifact_name(self.harness.config, tag='somesortoftag')
         )
-
-
-if __name__ == '__main__':
-    unittest.main()

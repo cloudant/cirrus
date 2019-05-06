@@ -18,7 +18,7 @@ from cirrus.environment import cirrus_home
 from cirrus.configuration import load_configuration, get_pypi_auth
 from cirrus.pypirc import PypircFile
 from cirrus.logger import get_logger
-from fabric.operations import local
+from invoke import run
 
 LOGGER = get_logger()
 
@@ -117,12 +117,12 @@ def execute_build(opts):
     if opts.clean and os.path.exists(venv_path):
         cmd = "rm -rf {0}".format(venv_path)
         LOGGER.info("Removing existing virtualenv: {0}".format(venv_path))
-        local(cmd)
+        run(cmd)
 
     if not os.path.exists(venv_bin_path):
         cmd = "{0} {1}".format(venv_command, venv_path)
         LOGGER.info("Bootstrapping virtualenv: {0}".format(venv_path))
-        local(cmd)
+        run(cmd)
 
     # custom pypi server
     pypi_server = config.pypi_url()
@@ -170,7 +170,7 @@ def execute_build(opts):
         cmd += " {} ".format(pip_options)
 
     try:
-        local(cmd)
+        run(cmd)
     except OSError as ex:
         msg = (
             "Error running pip install command during build\n"
@@ -198,7 +198,7 @@ def execute_build(opts):
         for cmd in commands:
             LOGGER.info("Installing extra requirements... {}".format(cmd))
             try:
-                local(cmd)
+                run(cmd)
             except OSError as ex:
                 msg = (
                     "Error running pip install command extra "
@@ -213,7 +213,7 @@ def execute_build(opts):
         LOGGER.info(msg)
     else:
         LOGGER.info('running python setup.py develop...')
-        local(
+        run(
             '. ./{0}/bin/activate && python setup.py develop'.format(
                 config.venv_name()
             )

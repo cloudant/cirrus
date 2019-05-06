@@ -39,7 +39,7 @@ def update_file(filename, sentinel, text):
     with codecs.open(filename, 'r', encoding='utf-8') as handle:
         content = handle.read()
 
-    replacement = u"{0}\n\n{1}".format(sentinel, text)
+    replacement = "{0}\n\n{1}".format(sentinel, text)
     content = content.replace(sentinel, replacement, 1)
     with codecs.open(filename, 'w', encoding='utf-8') as handle:
         handle.write(content)

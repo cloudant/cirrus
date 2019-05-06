@@ -4,7 +4,7 @@
 
 """
 import os
-import ConfigParser
+import configparser
 
 
 class PypircFile(dict):
@@ -22,7 +22,7 @@ class PypircFile(dict):
 
     def load(self):
         """parse config file into self"""
-        self.parser = ConfigParser.RawConfigParser()
+        self.parser = configparser.RawConfigParser()
         self.parser.read(self.config_file)
         for section in self.parser.sections():
             self.setdefault(section, {})

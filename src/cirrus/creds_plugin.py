@@ -133,4 +133,4 @@ class CredsPlugin(PluggagePlugin):
 
 if __name__ == '__main__':
     p = CredsPlugin()
-    print p.credential_map()
+    print(p.credential_map())

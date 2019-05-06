@@ -1,52 +1,36 @@
 #!/usr/bin/env python
 """
-_fabric_helpers_
-
 Utils/helpers for fabric api
-
 """
-import copy
-from fabric.api import env
+from fabric.config import Config
+from fabric.connection import Connection
 
 
-class FabricHelper(object):
+class FabricHelper(Connection):
     """
-    _FabricHelper_
-
-    Context helper to set and clear fabric env
-    to run a command on a given host
+    Simplified fabric Connection
 
     Example usage;
 
-    with FabricHelper('pypi.cloudant.com', 'evansde77', '/Users/david/.ssh/id_rsa'):
-        run('/bin/date')
+    with FabricHelper('pypi.cloudant.com', 'evansde77', '/Users/david/.ssh/id_rsa') as fh:
+        fh.run('/bin/date')
 
     Will run the date command on pypi.cloudant.com as evansde77 using the key file
     specified
     """
     def __init__(self, hostname, username, ssh_key):
-        self.hostname = hostname
-        self.username = username
-        self.ssh_key = ssh_key
-        # save settings
-        self.hostname_cache = None
-        self.username_cache = None
-        self.ssh_key_cache = None
+        config = Config(key_filename=ssh_key)
+        super().__init__(hostname, user=username, config=config)
 
-    def __enter__(self):
-        self.hostname_cache = copy.copy(env.host_string)
-        self.username_cache = copy.copy(env.user)
-        self.ssh_key_cache = copy.copy(env.key_filename)
+    def put(self, local, remote, use_sudo=False):
+        """
+        Adds sudo implementation that was removed in fabric2
 
-        env.host_string = self.hostname
-        env.user = self.username
-        env.key_filename = self.ssh_key
-        return self
-
-    def __exit__(self, *args):
-        env.host_string = self.hostname_cache
-        env.user = self.username_cache
-        env.key_filename = self.ssh_key_cache
-
-
-
+        :param bool use_sudo: if True, file is first moved to user's home
+            directory and then moved to the remote location
+        """
+        if use_sudo:
+            super().put(local)
+            self.sudo('mv {} {}'.format(local, remote))
+        else:
+            super().put(local, remote)
