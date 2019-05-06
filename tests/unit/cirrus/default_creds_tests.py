@@ -5,7 +5,7 @@ tests for default credential manager using gitconfig
 import os
 import unittest
 import tempfile
-import ConfigParser
+import configparser
 
 from cirrus.plugins.creds.default import Default
 
@@ -19,7 +19,7 @@ class DefaultCredsTests(unittest.TestCase):
         self.dir = tempfile.mkdtemp()
         self.gitconfig = os.path.join(self.dir, '.gitconfig')
 
-        gitconf = ConfigParser.RawConfigParser()
+        gitconf = configparser.RawConfigParser()
         gitconf.add_section('cirrus')
         gitconf.set('cirrus', 'credential-plugin', 'default')
         gitconf.set('cirrus', 'github-user', 'steve')
@@ -37,8 +37,8 @@ class DefaultCredsTests(unittest.TestCase):
         """test reading in the fake gitconfig and accessing data"""
         plugin = Default(gitconfig_file=self.gitconfig)
         gh = plugin.github_credentials()
-        self.failUnless('github_user' in gh)
-        self.failUnless('github_token' in gh)
+        self.assertIn('github_user', gh)
+        self.assertIn('github_token', gh)
         self.assertEqual(gh['github_user'], 'steve')
         self.assertEqual(gh['github_token'], 'steves token')
 

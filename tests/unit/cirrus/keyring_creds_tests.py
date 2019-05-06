@@ -6,7 +6,7 @@ Test coverage for the keyring creds plugin
 """
 
 import unittest
-import mock
+from unittest import mock
 from cirrus.plugins.creds.keyring import Keyring
 
 
@@ -26,8 +26,8 @@ class KeyringCredsTest(unittest.TestCase):
         plugin = Keyring()
 
         gh = plugin.github_credentials()
-        self.failUnless('github_user' in gh)
-        self.failUnless('github_token' in gh)
+        self.assertIn('github_user', gh)
+        self.assertIn('github_token', gh)
         self.assertEqual(gh['github_user'], 'steve')
         self.assertEqual(gh['github_token'], 'steves token')
 
@@ -43,7 +43,7 @@ class KeyringCredsTest(unittest.TestCase):
         plugin = Keyring()
         for n, m in plugin.credential_methods():
             check = m()
-            self.failUnless(all(v is 'womp' for v in check.values()))
+            self.assertTrue(all(v is 'womp' for v in list(check.values())))
 
 
 

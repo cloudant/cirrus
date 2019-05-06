@@ -31,7 +31,7 @@ def repo_directory():
     outp, err = process.communicate()
     if process.returncode:
         return None
-    return outp.strip()
+    return outp.strip().decode('utf-8')
 
 
 def cirrus_home():

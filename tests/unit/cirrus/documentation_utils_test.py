@@ -2,10 +2,9 @@
 documentation utils tests
 
 """
-import mock
 import os
 import tempfile
-import unittest
+from unittest import TestCase, mock
 
 from requests_toolbelt import MultipartEncoder
 
@@ -14,10 +13,10 @@ from cirrus.documentation_utils import build_docs
 from cirrus.documentation_utils import build_doc_artifact
 from cirrus.documentation_utils import publish_documentation
 
-from harnesses import CirrusConfigurationHarness, write_cirrus_conf
+from .harnesses import CirrusConfigurationHarness, write_cirrus_conf
 
 
-class TestDocumentationUtils(unittest.TestCase):
+class TestDocumentationUtils(TestCase):
     def setUp(self):
         """set up test files"""
         self.dir = tempfile.mkdtemp()
@@ -38,7 +37,7 @@ class TestDocumentationUtils(unittest.TestCase):
         )
         self.harness = CirrusConfigurationHarness('cirrus.documentation_utils.load_configuration', self.config)
         self.harness.setUp()
-        self.patch_local = mock.patch('cirrus.documentation_utils.local')
+        self.patch_local = mock.patch('cirrus.documentation_utils.run')
         self.mock_local = self.patch_local.start()
         self.doc_artifact_name = doc_artifact_name(self.harness.config)
 

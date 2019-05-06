@@ -4,9 +4,9 @@ tests for configuration module
 """
 import os
 import unittest
-import ConfigParser
+import configparser
 import tempfile
-import mock
+from unittest import mock
 
 from cirrus.plugins.creds.default import Default
 from cirrus.configuration import load_configuration
@@ -23,7 +23,7 @@ class ConfigurationTests(unittest.TestCase):
         self.test_file = os.path.join(self.dir, 'cirrus.conf')
         self.gitconfig = os.path.join(self.dir, '.gitconfig')
 
-        parser = ConfigParser.RawConfigParser()
+        parser = configparser.RawConfigParser()
         parser.add_section('package')
         parser.add_section('gitflow')
         parser.set('package', 'name', 'cirrus_tests')
@@ -36,7 +36,7 @@ class ConfigurationTests(unittest.TestCase):
         with open(self.test_file, 'w') as handle:
             parser.write(handle)
 
-        gitconf = ConfigParser.RawConfigParser()
+        gitconf = configparser.RawConfigParser()
         gitconf.add_section('cirrus')
         gitconf.set('cirrus', 'credential-plugin', 'default')
         with open(self.gitconfig, 'w') as handle:
@@ -73,8 +73,8 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(config.release_notes(), (None, None))
         self.assertEqual(config.version_file(), (None, '__version__'))
 
-        self.failUnless(config.credentials is not None)
-        self.failUnless(isinstance(config.credentials, Default))
+        self.assertIsNotNone(config.credentials)
+        self.assertTrue(isinstance(config.credentials, Default))
 
         # test updating version
         config.update_package_version('1.2.4')
@@ -89,16 +89,18 @@ class ConfigurationTests(unittest.TestCase):
         mock_result = mock.Mock()
         mock_result.communicate = mock.Mock()
         mock_result.returncode = 0
-        mock_result.communicate.return_value = (self.dir, None)
+        mock_result.communicate.return_value = (self.dir.encode(), None)
         mock_pop.return_value = mock_result
         mock_shell.return_value = self.gitconf_str
         config = load_configuration(package_dir="womp")
 
-        self.failUnless(mock_result.communicate.called)
-        mock_pop.assert_has_calls(mock.call(['git', 'rev-parse', '--show-toplevel'], stdout=-1))
+        self.assertTrue(mock_result.communicate.called)
+        mock_pop.assert_has_calls([
+            mock.call(['git', 'rev-parse', '--show-toplevel'], stdout=-1)
+        ])
         self.assertEqual(config.package_version(), '1.2.3')
         self.assertEqual(config.package_name(), 'cirrus_tests')
-        self.failUnless(mock_shell.called)
+        self.assertTrue(mock_shell.called)
         mock_shell.assert_has_calls([
             mock.call('git config --file {} -l'.format(self.gitconfig))
         ])
@@ -107,10 +109,10 @@ class ConfigurationTests(unittest.TestCase):
         """test building config mapping"""
         config = load_configuration(package_dir=self.dir, gitconfig_file=self.gitconfig)
         mapping = config.configuration_map()
-        self.failUnless('cirrus' in mapping)
-        self.failUnless('credentials' in mapping['cirrus'])
-        self.failUnless('configuration' in mapping['cirrus'])
-        self.failUnless('github_credentials' in mapping['cirrus']['credentials'])
+        self.assertIn('cirrus', mapping)
+        self.assertIn('credentials', mapping['cirrus'])
+        self.assertIn('configuration', mapping['cirrus'])
+        self.assertIn('github_credentials', mapping['cirrus']['credentials'])
         self.assertEqual(
             mapping['cirrus']['credentials']['github_credentials'],
             {'github_user': None, 'github_token': None}

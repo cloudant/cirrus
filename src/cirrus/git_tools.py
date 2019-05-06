@@ -185,7 +185,7 @@ def push(repo_dir):
     # Check to make sure that we haven't errored out.
     for r in ret:
         if r.flags >= r.ERROR:
-            raise RuntimeError(unicode(r.summary))
+            raise RuntimeError(str(r.summary))
     return ret
 
 
@@ -329,17 +329,17 @@ def format_commit_messages(rows):
     --- DATETIME: COMMIT MESSAGE
 
     """
-    result = [u" - Commit History:"]
+    result = [" - Commit History:"]
 
     for author, commits in itertools.groupby(rows, lambda x: x['committer']):
-        result.append(u" -- Author: {0}".format(author))
+        result.append(" -- Author: {0}".format(author))
         sorted_commits = sorted(
             [ c for c in commits ],
             key=lambda x: x['date'],
             reverse=True
         )
         result.extend(
-            u' --- {0}: {1}'.format(commit['date'],commit['message'])
+            ' --- {0}: {1}'.format(commit['date'],commit['message'])
             for commit in sorted_commits
         )
 

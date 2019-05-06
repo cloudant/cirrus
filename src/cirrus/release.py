@@ -12,7 +12,7 @@ import datetime
 import itertools
 import shutil
 from collections import OrderedDict
-from fabric.operations import local
+from invoke import run
 import pluggage.registry
 
 import argparse
@@ -185,7 +185,7 @@ def release_config(config, opts):
     if 'release' not in config:
         release_config = release_config_defaults
     else:
-        for key, val in release_config_defaults.iteritems():
+        for key, val in release_config_defaults.items():
             release_config[key] = config.get_param('release', key, val)
 
     release_config['wait_on_ci'] = convert_bool(release_config['wait_on_ci'])
@@ -606,18 +606,18 @@ def merge_release(opts):
         expected_branch = release_branch_name(config)
         if release_branch != expected_branch:
             msg = (
-                u"Not on the expected release branch according "
-                u"to cirrus.conf\n Expected:{0} but on {1}"
+                "Not on the expected release branch according "
+                "to cirrus.conf\n Expected:{0} but on {1}"
             ).format(expected_branch, release_branch)
             LOGGER.error(msg)
             raise RuntimeError(msg)
 
         # merge release branch into master
-        LOGGER.info(u"Tagging and pushing {0}".format(tag))
+        LOGGER.info("Tagging and pushing {0}".format(tag))
         if opts.skip_master:
-            LOGGER.info(u'Skipping merging to {}'.format(master))
+            LOGGER.info('Skipping merging to {}'.format(master))
         if opts.skip_develop:
-            LOGGER.info(u'Skipping merging to {}'.format(develop))
+            LOGGER.info('Skipping merging to {}'.format(develop))
 
         if opts.log_status:
             ghc.log_branch_status(master)
@@ -628,14 +628,14 @@ def merge_release(opts):
                 #
                 # wait on release branch CI success
                 #
-                LOGGER.info(u"Waiting on CI build for {0}".format(release_branch))
+                LOGGER.info("Waiting on CI build for {0}".format(release_branch))
                 ghc.wait_on_gh_status(
                     sha,
                     timeout=rel_conf['wait_on_ci_timeout'],
                     interval=rel_conf['wait_on_ci_interval']
                 )
 
-            LOGGER.info(u"Merging {} into {}".format(release_branch, master))
+            LOGGER.info("Merging {} into {}".format(release_branch, master))
             ghc.pull_branch(master)
             ghc.merge_branch(release_branch)
             sha = ghc.repo.head.ref.commit.hexsha
@@ -645,7 +645,7 @@ def merge_release(opts):
                 #
                 # wait on release branch CI success
                 #
-                LOGGER.info(u"Waiting on CI build for {0}".format(master))
+                LOGGER.info("Waiting on CI build for {0}".format(master))
                 ghc.wait_on_gh_status(
                     sha,
                     timeout=rel_conf['wait_on_ci_timeout'],
@@ -653,7 +653,7 @@ def merge_release(opts):
                 )
             if rel_conf['update_github_context']:
                 for ctx in rel_conf['github_context_string']:
-                    LOGGER.info(u"Setting {} for {}".format(
+                    LOGGER.info("Setting {} for {}".format(
                         ctx,
                         sha)
                     )
@@ -665,7 +665,7 @@ def merge_release(opts):
 
             if rel_conf['update_master_github_context']:
                 for ctx in rel_conf['github_master_context_string']:
-                    LOGGER.info(u"Setting {} for {}".format(
+                    LOGGER.info("Setting {} for {}".format(
                         ctx,
                         sha)
                     )
@@ -678,10 +678,10 @@ def merge_release(opts):
                 attempts=rel_conf['push_retry_attempts'],
                 cooloff=rel_conf['push_retry_cooloff']
             )
-            LOGGER.info(u"Tagging {} as {}".format(master, tag))
+            LOGGER.info("Tagging {} as {}".format(master, tag))
             ghc.tag_release(tag, master)
 
-        LOGGER.info(u"Merging {} into {}".format(release_branch, develop))
+        LOGGER.info("Merging {} into {}".format(release_branch, develop))
         if opts.log_status:
             ghc.log_branch_status(develop)
         if not opts.skip_develop:
@@ -693,7 +693,7 @@ def merge_release(opts):
                 #
                 # wait on release branch CI success
                 #
-                LOGGER.info(u"Waiting on CI build for {0}".format(develop))
+                LOGGER.info("Waiting on CI build for {0}".format(develop))
                 ghc.wait_on_gh_status(
                     sha,
                     timeout=rel_conf['wait_on_ci_timeout'],
@@ -701,7 +701,7 @@ def merge_release(opts):
                 )
             if rel_conf['update_github_context']:
                 for ctx in rel_conf['github_context_string']:
-                    LOGGER.info(u"Setting {} for {}".format(
+                    LOGGER.info("Setting {} for {}".format(
                         ctx,
                         sha)
                     )
@@ -713,7 +713,7 @@ def merge_release(opts):
 
             if rel_conf['update_develop_github_context']:
                 for ctx in rel_conf['github_develop_context_string']:
-                    LOGGER.info(u"Setting {} for {}".format(
+                    LOGGER.info("Setting {} for {}".format(
                         ctx,
                         sha)
                     )
@@ -742,7 +742,7 @@ def build_release(opts):
 
     LOGGER.info("Building release...")
     config = load_configuration()
-    local(cmd)
+    run(cmd)
     build_artifact = artifact_name(config, tag=tag)
     if not os.path.exists(build_artifact):
         msg = "Expected build artifact: {0} Not Found".format(build_artifact)
@@ -786,8 +786,16 @@ def build_and_upload(opts):
         'bin',
         'python'
     )
-    cmd = '{} setup.py egg_info {} bdist_wheel upload -r local'
-    local(cmd.format(venv_py_path, tag_option), capture=True)
+    cmd = '{} setup.py egg_info {} bdist_wheel upload -r local'.format(
+        venv_py_path,
+        tag_option
+    )
+    result = run(cmd, hide='stdout', echo=True)
+    try:
+        submit_msg = result.stdout.split('\n')[-3]
+        print(submit_msg)
+    except Exception:
+        print('Unable to print submit message')
     LOGGER.info("...Build and upload complete")
 
 
@@ -817,7 +825,7 @@ def update_requirements(path, versions):
         # overwrite original requirements.txt with updated version
         fh.seek(0)
         fh.writelines(['{}=={}'.format(pkg, version)
-                      for pkg, version in reqs.iteritems()])
+                      for pkg, version in reqs.items()])
         fh.truncate()
 
 

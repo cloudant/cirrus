@@ -6,15 +6,14 @@ unittests for cirrus.environment module
 
 import os
 import copy
-import unittest
-import mock
+from unittest import TestCase, mock
 import tempfile
 
 from cirrus.environment import cirrus_home
 from cirrus.environment import virtualenv_home
 
 
-class EnvironmentFunctionTests(unittest.TestCase):
+class EnvironmentFunctionTests(TestCase):
     """
     test case for environment module functions
 
@@ -53,7 +52,7 @@ class EnvironmentFunctionTests(unittest.TestCase):
         self.assertEqual(home2, 'TESTVALUE/venv')
 
 
-class CleanEnvironmentTests(unittest.TestCase):
+class CleanEnvironmentTests(TestCase):
 
     def setUp(self):
         """save/mock the os.environ settings"""
@@ -83,8 +82,8 @@ class CleanEnvironmentTests(unittest.TestCase):
         mock_env.__setitem__ = mock.Mock()
         mock_srcfile.return_value = self.venv_dir
         self.assertEqual(cirrus_home(), self.dir)
-        self.failUnless(not mock_repo.called)
-        self.failUnless(mock_env.__setitem__.called)
+        self.assertTrue(not mock_repo.called)
+        self.assertTrue(mock_env.__setitem__.called)
 
     @mock.patch('cirrus.environment.inspect.getsourcefile')
     @mock.patch('cirrus.environment.repo_directory')
@@ -100,7 +99,7 @@ class CleanEnvironmentTests(unittest.TestCase):
         mock_srcfile.return_value = self.venv_dir_2
         mock_repo.return_value = None
         self.assertRaises(RuntimeError, cirrus_home)
-        self.failUnless(not mock_env.__setitem__.called)
+        self.assertTrue(not mock_env.__setitem__.called)
 
     @mock.patch('cirrus.environment.inspect.getsourcefile')
     @mock.patch('cirrus.environment.repo_directory')
@@ -115,8 +114,8 @@ class CleanEnvironmentTests(unittest.TestCase):
         mock_srcfile.return_value = self.venv_dir_2
         mock_repo.return_value = os.path.dirname(self.venv_dir_2)
         self.assertEqual(cirrus_home(), os.path.dirname(self.venv_dir_2))
-        self.failUnless(mock_repo.called)
-        self.failUnless(mock_env.__setitem__.called)
+        self.assertTrue(mock_repo.called)
+        self.assertTrue(mock_env.__setitem__.called)
 
 
 if __name__ == '__main__':

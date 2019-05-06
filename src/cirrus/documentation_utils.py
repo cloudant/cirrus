@@ -9,7 +9,7 @@ import os
 import sys
 import tarfile
 
-from fabric.operations import local
+from invoke import run
 import pluggage.registry
 
 from cirrus.configuration import load_configuration
@@ -81,7 +81,7 @@ def build_docs(make_opts=None):
         # additional args were passed after --docs. Pass these to make
         cmd = 'cd {} && make {}'.format(docs_root, ' '.join(make_opts))
 
-    local('. ./{}/bin/activate && {}'.format(config.venv_name(), cmd))
+    run('. ./{}/bin/activate && {}'.format(config.venv_name(), cmd))
     LOGGER.info('Build command was "{}"'.format(cmd))
 
 

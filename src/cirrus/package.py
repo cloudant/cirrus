@@ -20,7 +20,7 @@ import os
 import sys
 
 import pystache
-import ConfigParser
+import configparser
 import pluggage.registry
 
 import cirrus.templates
@@ -62,7 +62,7 @@ def list_plugins():
         load_modules=['cirrus.plugins.editors']
     )
     return [
-        k for k in factory.registry.keys()
+        k for k in list(factory.registry.keys())
         if k != "EditorPlugin"
     ]
 
@@ -332,7 +332,7 @@ def write_cirrus_conf(opts, version_file):
     cirrus_conf = os.path.join(opts.repo, 'cirrus.conf')
     LOGGER.info("setting up cirrus.conf: {}".format(cirrus_conf))
     backup_file(cirrus_conf)
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     config.add_section('package')
     config.set('package', 'name', opts.package)
     config.set('package', 'version', opts.version)
@@ -352,10 +352,10 @@ def write_cirrus_conf(opts, version_file):
     config.set('gitflow', 'feature_branch_prefix', 'feature/')
 
     config.add_section('test-default')
-    config.set('test-default', 'TESTDIRHERE')
+    config.set('test-default', 'where', 'TESTDIRHERE')
 
     config.add_section('quality')
-    config.set('quality', 'threshold', 10)
+    config.set('quality', 'threshold', '10')
 
     with open(cirrus_conf, 'w') as handle:
         config.write(handle)

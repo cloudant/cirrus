@@ -11,4 +11,4 @@ Eg:
  whatever the hell vi does...
 
 """
-import sublime
+from . import sublime

@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 """
-_pylint_tools_
-
 Wrapper for pylint execution
-
-
 """
 
 import os
 import re
 import sys
-from fabric.operations import local, settings, hide
+from invoke import run
 
 from cirrus.logger import get_logger
 
@@ -32,14 +28,11 @@ def pylint_file(filenames, **kwargs):
 
     command = command + ' '.join(filenames)
 
-    # we use fabric to run the pylint command, hiding the normal fab
-    # output and warnings
-    with hide('output', 'running', 'warnings'), settings(warn_only=True):
-        result = local(command, capture=True)
-
+    result = run(command, hide=True, warn=True)
+    output = result.stdout
     score = 0.0
     # parse the output from pylint for the score
-    for line in result.split('\n'):
+    for line in output.split('\n'):
         if  re.match("E....:.", line):
             LOGGER.info(line)
         if "Your code has been rated at" in line:
@@ -51,20 +44,15 @@ def pylint_file(filenames, **kwargs):
 
 def pyflakes_file(filenames, verbose=False):
     """
-    _pyflakes_file_
-
-    Appyly pyflakes to file specified,
+    Applies pyflakes to file specified,
     return (filenames, score)
     """
     command = 'pyflakes ' + ' '.join(filenames)
 
-    # we use fabric to run the pyflakes command, hiding the normal fab
-    # output and warnings
-    with hide('output', 'running', 'warnings'), settings(warn_only=True):
-        result = local(command, capture=True)
-
+    result = run(command, hide=True, warn=True)
+    output = result.stdout
     flakes = 0
-    data = [x for x in result.split('\n') if x.strip()]
+    data = [x for x in output.split('\n') if x.strip()]
     if len(data) != 0:
         #We have at least one flake, find the rest
         flakes = count_flakes(data, verbose) + 1

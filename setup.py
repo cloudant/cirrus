@@ -5,13 +5,13 @@ _setup.py_
 Setup script for cirrus.
 
 """
-import ConfigParser
+import configparser
 import setuptools
 
 #
 # read the cirrus conf for this package
 #
-config = ConfigParser.RawConfigParser()
+config = configparser.RawConfigParser()
 config.read("cirrus.conf")
 
 #

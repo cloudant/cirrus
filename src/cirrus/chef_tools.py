@@ -86,7 +86,7 @@ def edit_chef_environment(server_url, cert, username, environment, attributes):
         env = chef.Environment(environment)
         overrides = env.override_attributes
         LOGGER.info("Editing Chef Server Environment: {} as {}".format(environment, username))
-        for attr, new_value in attributes.iteritems():
+        for attr, new_value in attributes.items():
             LOGGER.info(" => Setting {}={}".format(attr, new_value))
             set_dotted(overrides, attr, new_value)
         env.save()
@@ -104,7 +104,7 @@ def edit_chef_role(server_url, cert, username, rolename, attributes):
         role = chef.Role(rolename)
         LOGGER.info("Editing Chef Server Role: {} as {}".format(rolename, username))
         overrides = role.override_attributes
-        for attr, new_value in attributes.iteritems():
+        for attr, new_value in attributes.items():
             LOGGER.info(" => Setting {}={}".format(attr, new_value))
             set_dotted(overrides, attr, new_value)
         role.save()
@@ -191,7 +191,7 @@ def update_chef_environment(server_url, cert, username, environment, attributes,
         with r.feature_branch(feature_name, push=kwargs.get('push', False)):
             with r.edit_environment(environment, branch=r.current_branch_name) as env:
                 LOGGER.info("Updating Chef Environment: {}".format(environment))
-                for x, y in attributes.iteritems():
+                for x, y in attributes.items():
                     LOGGER.info(" => Setting {}={}".format(x, y))
                     set_dotted(env['override_attributes'], x, y)
 

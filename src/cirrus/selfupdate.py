@@ -15,7 +15,7 @@ import requests
 import inspect
 import contextlib
 
-from fabric.operations import local
+from invoke import run
 
 import cirrus
 from cirrus.configuration import load_configuration
@@ -139,11 +139,11 @@ def setup_develop(config):
 
     """
     LOGGER.info("running setup.py develop...")
-    local(
+    run(
         'git cirrus build --upgrade'
     )
 
-    local(
+    run(
         ' . ./{0}/bin/activate && python setup.py develop'.format(
             config.venv_name()
         )
@@ -156,7 +156,7 @@ def pip_install(version):
     pip_req = 'cirrus-cli=={0}'.format(version)
     venv_name = os.path.basename(virtualenv_home())
     LOGGER.info("running pip upgrade...")
-    local(
+    run(
         ' . ./{0}/bin/activate && pip install --upgrade {1}'.format(
             venv_name, pip_req
         )

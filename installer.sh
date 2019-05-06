@@ -39,7 +39,7 @@ virtualenv venv
 
 # This depends on a properly configured pip.conf file.
 # See https://github.com/cloudant/service_engineering/wiki/Using-JFrog-Artifactory
-pip install cirrus-cli 1>> ${LOCATION}/install.log
+pip install cirrus-cli${CIRRUS_INSTALL_VERSION} 1>> ${LOCATION}/install.log
 
 export CIRRUS_HOME=${LOCATION}
 export VIRTUALENV_HOME=${LOCATION}/venv

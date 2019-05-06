@@ -2,16 +2,14 @@
 """
 docker command unittests
 """
-
-import unittest
-import mock
+from unittest import TestCase, mock
 
 import cirrus.docker as dckr
 from cirrus.configuration import Configuration
 from subprocess import CalledProcessError
 
 
-class DockerFunctionTests(unittest.TestCase):
+class DockerFunctionTests(TestCase):
     """
     test coverage for docker command module functions
     """
@@ -58,12 +56,12 @@ class DockerFunctionTests(unittest.TestCase):
     def test_docker_build(self):
         """test straight docker build call"""
         dckr.docker_build(self.opts, self.config)
-        self.failUnless(self.mock_subp.check_output.called)
-        self.mock_subp.check_output.assert_has_calls(
+        self.assertTrue(self.mock_subp.check_output.called)
+        self.mock_subp.check_output.assert_has_calls([
             mock.call(
                 ['docker', 'build', '-t', 'unittesting/unittesting:1.2.3', 'vm/docker_image']
             )
-        )
+        ])
 
     @mock.patch('cirrus.docker.ds')
     def test_docker_build_template(self, mock_ds):
@@ -73,18 +71,18 @@ class DockerFunctionTests(unittest.TestCase):
         self.opts.dockerstache_context = 'context'
         self.opts.dockerstache_defaults = 'defaults'
         dckr.docker_build(self.opts, self.config)
-        self.failUnless(mock_ds.run.called)
+        self.assertTrue(mock_ds.run.called)
 
-        mock_ds.run.assert_has_calls(
+        mock_ds.run.assert_has_calls([
             mock.call(
                 output='vm/docker_image', context=None, defaults=None, input='template', extend_context=mock.ANY
             )
-        )
-        self.mock_subp.check_output.assert_has_calls(
+        ])
+        self.mock_subp.check_output.assert_has_calls([
             mock.call(
                 ['docker', 'build', '-t', 'unittesting/unittesting:1.2.3', 'vm/docker_image']
             )
-        )
+        ])
 
     def test_docker_build_login(self):
         """test build with login"""
@@ -97,7 +95,7 @@ class DockerFunctionTests(unittest.TestCase):
         self.config['docker']['docker_login_email'] = 'steve@pbr.com'
 
         dckr.docker_build(self.opts, self.config)
-        self.failUnless(self.mock_subp.check_output.called)
+        self.assertTrue(self.mock_subp.check_output.called)
         self.mock_subp.check_output.assert_has_calls(
             [
                 mock.call(['docker', 'login', '-u', 'steve', '-e', 'steve@pbr.com', '-p', 'st3v3R0X']),
@@ -157,14 +155,15 @@ class DockerFunctionTests(unittest.TestCase):
 
     def test_docker_connection_error(self):
         """test failed docker daemon connection"""
+        # need to unmock CalledProcessError or code raises
+        # TypeError: catching classes that do not inherit from BaseException is
+        # not allowed
+        self.mock_subp.CalledProcessError = CalledProcessError
         self.mock_subp.check_output.side_effect = CalledProcessError(
             1,
             ['docker', 'info'],
-            'Cannot connect to the Docker daemon...')
+            'Cannot connect to the Docker daemon...'
+        )
 
-        with self.assertRaises(CalledProcessError):
-            result = dckr.is_docker_connected()
-            self.assertFalse(result)
-
-if __name__ == '__main__':
-    unittest.main()
+        result = dckr.is_docker_connected()
+        self.assertFalse(result)

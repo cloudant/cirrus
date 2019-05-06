@@ -5,5 +5,5 @@ _publishers_
 Documentation publisher plugins
 
 """
-import doc_file_server
-import jenkins
+from . import doc_file_server
+from . import jenkins

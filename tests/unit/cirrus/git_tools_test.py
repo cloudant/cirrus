@@ -1,25 +1,27 @@
 '''
 tests for git_tools
 '''
-import mock
-import unittest
+from unittest import TestCase, mock
 
 from git.remote import PushInfo
 
-from cirrus.git_tools import branch
-from cirrus.git_tools import checkout_and_pull
-from cirrus.git_tools import get_active_branch
-from cirrus.git_tools import get_diff_files
-from cirrus.git_tools import merge
-from cirrus.git_tools import push
-from cirrus.git_tools import build_release_notes
-from cirrus.git_tools import format_commit_messages
-from cirrus.git_tools import get_commit_msgs
-from cirrus.git_tools import get_tags
-from cirrus.git_tools import get_tags_with_sha
-from cirrus.git_tools import markdown_format
+from cirrus.git_tools import (
+    branch,
+    build_release_notes,
+    checkout_and_pull,
+    format_commit_messages,
+    get_active_branch,
+    get_commit_msgs,
+    get_diff_files,
+    get_tags,
+    get_tags_with_sha,
+    markdown_format,
+    merge,
+    push
+)
 
-class GitToolsTest(unittest.TestCase):
+
+class GitToolsTest(TestCase):
 
     def setUp(self):
         self.mock_commits = [mock.Mock(), mock.Mock()]
@@ -74,7 +76,7 @@ class GitToolsTest(unittest.TestCase):
         _test_checkout_and_pull_
         """
         checkout_and_pull(None, 'master')
-        self.failUnless(self.mock_git.Repo.called)
+        self.assertTrue(self.mock_git.Repo.called)
 
     def test_branch(self):
         """
@@ -83,28 +85,28 @@ class GitToolsTest(unittest.TestCase):
         self.mock_repo.heads = []
         self.mock_repo.active_branch = 'new_branch'
         branch(None, self.mock_repo.active_branch, 'master')
-        self.failUnless(self.mock_git.Repo.called)
+        self.assertTrue(self.mock_git.Repo.called)
 
     def test_push(self):
         """
         _test_push_
         """
         push(None)
-        self.failUnless(self.mock_git.Repo.called)
+        self.assertTrue(self.mock_git.Repo.called)
 
     def test_get_active_branch(self):
         """
         _test_get_active_branch_
         """
         get_active_branch(None)
-        self.failUnless(self.mock_git.Repo.called)
+        self.assertTrue(self.mock_git.Repo.called)
 
     def test_merge(self):
         branch1 = 'branch1'
         branch2 = 'branch2'
 
         merge(None, branch1, branch2)
-        self.failUnless(self.mock_git.Repo.called)
+        self.assertTrue(self.mock_git.Repo.called)
 
     def test_get_diff_files(self):
         path = "path/to/file/hello.py"
@@ -113,8 +115,8 @@ class GitToolsTest(unittest.TestCase):
         self.mock_repo.index.diff.return_value = [self.mock_blob]
 
         diffs = get_diff_files(None)
-        self.failUnlessEqual(diffs[0], path)
-        self.failUnless(self.mock_git.Repo.called)
+        self.assertEqual(diffs[0], path)
+        self.assertTrue(self.mock_git.Repo.called)
 
     def test_build_release_notes(self):
         """
@@ -133,8 +135,8 @@ class GitToolsTest(unittest.TestCase):
                     None,
                     self.release,
                     'plaintext')
-                self.failUnless(mock_get_tags_sha.called)
-                self.failUnless(mock_get_commit.called)
+                self.assertTrue(mock_get_tags_sha.called)
+                self.assertTrue(mock_get_commit.called)
 
     def test_commit_messages(self):
         """
@@ -143,7 +145,7 @@ class GitToolsTest(unittest.TestCase):
         prints plaintext release notes
         """
         msg = format_commit_messages(self.commit_info)
-        print "Plaintext release notes:\n{0}\n".format(msg)
+        print("Plaintext release notes:\n{0}\n".format(msg))
 
     def test_markdown_format(self):
         """
@@ -152,26 +154,26 @@ class GitToolsTest(unittest.TestCase):
         prints markdown release notes
         """
         msg = markdown_format(self.commit_info)
-        print "Markdown release notes:\n{0}\n".format(msg)
+        print("Markdown release notes:\n{0}\n".format(msg))
 
     def test_get_commit_msgs(self):                            
         """                                                    
         _test_get_commit_msgs_                                 
         """      
         result = get_commit_msgs(None, 'RANDOM_SHA')
-        self.failUnless('committer' in result[0])              
-        self.failUnless('message' in result[0])                
-        self.failUnless('date' in result[0])   
-        self.failUnless('committer' in result[1])              
-        self.failUnless('message' in result[1])                
-        self.failUnless('date' in result[1])   
+        self.assertIn('committer', result[0])
+        self.assertIn('message', result[0])
+        self.assertIn('date', result[0])
+        self.assertIn('committer', result[1])
+        self.assertIn('message', result[1])
+        self.assertIn('date', result[1])
 
     def test_get_tags(self):                                   
         """                                                    
         _test_get_tags_                                        
         """                                                    
         result = get_tags(None)  
-        self.failUnlessEqual(result, ['orange', 'banana', 'apple'])  
+        self.assertEqual(result, ['orange', 'banana', 'apple'])  
 
     def test_get_tags_with_sha(self):                          
         """                                                    

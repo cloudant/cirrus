@@ -45,10 +45,10 @@ class PypircFileTest(unittest.TestCase):
         """test loading file and accessing data"""
 
         pypirc = PypircFile(self.file)
-        self.failUnless(pypirc.exists())
+        self.assertTrue(pypirc.exists())
 
-        self.failUnless('pypi' in pypirc.index_servers)
-        self.failUnless('devpi' in pypirc.index_servers)
+        self.assertIn('pypi', pypirc.index_servers)
+        self.assertIn('devpi', pypirc.index_servers)
 
         self.assertEqual(
             pypirc.get_pypi_url('pypi'),

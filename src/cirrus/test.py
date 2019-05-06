@@ -5,7 +5,7 @@ Command to run available test suites in a package
 '''
 import sys
 
-from fabric.operations import local
+from invoke import run
 from argparse import ArgumentParser
 
 from cirrus.configuration import load_configuration
@@ -49,17 +49,16 @@ def build_parser(argslist):
 
 def nose_run(config, opts):
     """
-    _nose_test_
-
     Locally activate vitrualenv and run tests via nose
     """
     where = config.test_where(opts.suite)
-    local(
+    run(
         '. ./{0}/bin/activate && nosetests -w {1} {2}'.format(
             config.venv_name(),
             where,
             opts.options
-        )
+        ),
+        warn=True
     )
 
 
@@ -70,7 +69,7 @@ def tox_run(config, opts):
     activate venv and run tox test suite
 
     """
-    local(
+    run(
         '. ./{0}/bin/activate && tox {1}'.format(
             config.venv_name(),
             opts.options
