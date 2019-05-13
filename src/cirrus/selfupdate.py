@@ -11,7 +11,6 @@ import sys
 import argparse
 import arrow
 import os
-import requests
 import inspect
 import contextlib
 
@@ -26,7 +25,6 @@ from cirrus.logger import get_logger
 
 
 LOGGER = get_logger()
-PYPI_JSON_URL = "https://pypi.python.org/pypi/cirrus-cli/json"
 
 
 @contextlib.contextmanager
@@ -58,7 +56,7 @@ def build_parser(argslist):
         '--version',
         help='specify a tag to install',
         required=False,
-        default=None,
+        default='',
 
     )
     parser.add_argument(
@@ -78,40 +76,6 @@ def build_parser(argslist):
 
     opts = parser.parse_args(argslist)
     return opts
-
-
-def sort_by_date(d1, d2):
-    """
-    cmp function to sort by datetime string
-    that is second element of tuples in list
-    """
-    date1 = arrow.get(d1[1])
-    date2 = arrow.get(d2[1])
-    return date1 > date2
-
-
-def latest_release(config):
-    """
-    _latest_release_
-
-    pull list of releases from GH repo, pick the newest by
-    publication date.
-
-    """
-    releases = get_releases(config.organisation_name(), config.package_name())
-    tags = [(release['tag_name'], release['published_at']) for release in releases]
-    sorted(tags, cmp=sort_by_date)
-    most_recent_tag = tags[0][0]
-    return most_recent_tag
-
-
-def latest_pypi_release():
-    """grab latest release from pypi"""
-    resp = requests.get(PYPI_JSON_URL)
-    resp.raise_for_status()
-    content = resp.json()
-    latest = content['info']['version']
-    return latest
 
 
 def find_cirrus_install():
@@ -153,7 +117,9 @@ def setup_develop(config):
 
 def pip_install(version):
     """pip install the version of cirrus requested"""
-    pip_req = 'cirrus-cli=={0}'.format(version)
+    if version:
+        version = '=={}'.format(version)
+    pip_req = 'cirrus-cli{}'.format(version)
     venv_name = os.path.basename(virtualenv_home())
     LOGGER.info("running pip upgrade...")
     run(
@@ -191,24 +157,14 @@ def pip_update(opts):
     """update pip installed cirrus"""
     install = cirrus_home()
     with chdir(install):
-        if opts.version is not None:
-            tag = opts.version
-            LOGGER.info("tag specified: {0}".format(tag))
-        else:
-            # should probably be a pip call now...
-            tag = latest_pypi_release()
-            LOGGER.info("Retrieved latest tag: {0}".format(tag))
-        pip_install(tag)
+        pip_install(opts.version)
 
 
 def main():
     """
-    _main_
-
-    parse command line opts and deduce wether to check out
-    a branch or tag, default behaviour is to look up latest
-    release on github and install that
-
+    Parses command line opts and deduce wether to check out
+    a branch or tag, default behaviour is to install latest release found by
+    pip
     """
     opts = build_parser(sys.argv)
     if opts.legacy_repo:
