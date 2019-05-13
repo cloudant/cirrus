@@ -1,3 +1,5 @@
+:warning: cirrus has been ported to Python 3 and newer versions (>=3.0.0) are not backwards compatible. The last Python 2 release was 2.0.2. :warning:
+
 cirrus
 ======
 
@@ -18,7 +20,7 @@ Our solution was to check out the most recently working version, `0.1.7` and cre
 Installation Prerequisites
 ==========================
 
-* Cirrus requires python 2.7 (support for python 3 is in the pipeline) as well as pip and virtualenv installed.
+* Cirrus requires python 3.5.
 * Git tools are heavily used, git is a requirement as cirrus is accessed via git command aliases.
 
 Installation as a user:
@@ -31,7 +33,7 @@ bash installer.sh
 
 The installer script will set up an install of cirrus for you in your home directory
 and prompt for some info so that it can set up some parameters in your .gitconfig
-The installer will create a virtualenv and install cirrus from pip via the cirrus-cli package, installing the latest available version.
+The installer will create a virtualenv and install cirrus from pip via the cirrus-cli package, installing the latest available version. If a specific version is required, it may be set via environment variable. For example, if you require version 3.0.0 you can use `export CIRRUS_INSTALL_VERSION='==3.0.0'`
 
 
 
@@ -42,7 +44,7 @@ _Note_: This package uses GitFlow, any development work should be done off the d
 pull requests made against develop, not master.
 
 ```bash
-git clone https://github.com/evansde77/cirrus.git
+git clone https://github.com/cloudant/cirrus.git
 cd cirrus
 git cirrus build
 ```
@@ -197,9 +199,8 @@ Commands related to creation of a new git-flow style release branch, building th
 There are three subcommands:
 
 1. new - creates a new release branch, increments the package version, builds the release notes if configured.
-2. build - Runs sdist to create a new build artifact from the release branch
+2. build\_and\_upload - builds a release artifact and uploads it to artifactory. A `--dev` option is provided to create test releases which can be used for testing (via sapitest002 for example).
 3. merge - Runs git-flow style branch merges back to master and develop, optionally waiting on CI or setting flags for GH build contexts if needed
-4. upload - Pushes the build artifact to the pypi server configured in the cirrus conf, using a plugin system to allow for customisation.
 
 Usage:
 ```bash
