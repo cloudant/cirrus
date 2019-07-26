@@ -109,25 +109,6 @@ class BuildCommandTests(TestCase):
             mock.call('. ./venv/bin/activate && python setup.py develop')
         ])
 
-    def test_execute_build_pypirc(self):
-        """test execute_build with pypirc provided settings"""
-        opts = mock.Mock()
-        opts.clean = False
-        opts.upgrade = False
-        opts.extras = []
-        opts.nosetupdevelop = False
-
-        self.mock_conf.pypi_url.return_value = "dev"
-        self.mock_pypirc_inst.index_servers = ['dev']
-        self.mock_pypirc_inst.get_pypi_url = mock.Mock(return_value="DEVPYPIURL")
-        execute_build(opts)
-
-        self.mock_local.assert_has_calls([
-            mock.call('CIRRUS_HOME/venv/bin/virtualenv CWD/venv'),
-            mock.call('CWD/venv/bin/pip install -i DEVPYPIURL -r requirements.txt'),
-            mock.call('. ./venv/bin/activate && python setup.py develop')
-        ])
-
     def test_execute_build_default_pypi_pip_options(self):
         """test execute_build with default pypi settings"""
         opts = mock.Mock()
@@ -196,7 +177,7 @@ class BuildCommandTests(TestCase):
         opts.extras = []
         opts.upgrade = False
         opts.nosetupdevelop = False
-        self.mock_conf.pypi_url.return_value = "PYPIURL"
+        self.mock_conf.pypi_url.return_value = "https://PYPIUSERNAME:TOKEN@PYPIURL/simple"
 
         execute_build(opts)
 
@@ -214,7 +195,7 @@ class BuildCommandTests(TestCase):
         opts.extras = []
         opts.nosetupdevelop = False
         opts.upgrade = True
-        self.mock_conf.pypi_url.return_value = "PYPIURL"
+        self.mock_conf.pypi_url.return_value = "https://PYPIUSERNAME:TOKEN@PYPIURL/simple"
 
         execute_build(opts)
 

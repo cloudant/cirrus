@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 """
-_configuration_
-
 Util class to read and access the cirrus.conf file
 that defines how the various commands operate.
 
@@ -11,12 +9,14 @@ from cirrus.configuration import load_configuration
 conf = load_configuration()
 
 """
+import configparser
 import os
+import pluggage.registry
+import subprocess
+from urllib.parse import quote_plus
+
 from cirrus.gitconfig import load_gitconfig
 from cirrus.environment import repo_directory
-import subprocess
-import configparser
-import pluggage.registry
 
 
 def get_creds_plugin(plugin_name):
@@ -33,10 +33,6 @@ def get_creds_plugin(plugin_name):
 
 
 class Configuration(dict):
-    """
-    _Configuration_
-
-    """
     def __init__(self, config_file, gitconfig_file=None):
         super(Configuration, self).__init__(self)
         self.gitconfig_file = gitconfig_file
@@ -151,8 +147,27 @@ class Configuration(dict):
     def release_notes_format(self):
         return self.get('package', {}).get('release_notes_format', 'plaintext')
 
-    def pypi_url(self):
+    def pypi_server(self):
+        """
+        Returns the pypi server name
+
+        ..note:: This was formerly named pypi_url and the config item it gets
+            is named pypi_url
+        """
         return self.get('pypi', {}).get('pypi_url')
+
+    def pypi_url(self):
+        """
+        Returns the full pypi url (simple) with credentials
+        """
+        pypi_creds = self.credentials.pypi_credentials()
+        encoded_username = quote_plus(pypi_creds['username'])
+        encoded_token = quote_plus(pypi_creds['token'])
+        return 'https://{username}:{token}@{server}/simple'.format(
+            username=encoded_username,
+            token=encoded_token,
+            server=self.pypi_server()
+        )
 
     def pip_options(self):
         return self.get('pypi', {}).get('pip_options')

@@ -11,6 +11,7 @@ This command:
 """
 import os
 import sys
+from urllib.parse import quote_plus
 from argparse import ArgumentParser
 
 from cirrus.documentation_utils import build_docs
@@ -80,8 +81,6 @@ def build_parser(argslist):
 
 def execute_build(opts):
     """
-    _execute_build_
-
     Execute the build in the current package context.
 
     - reads the config to check for custom build parameters
@@ -129,19 +128,7 @@ def execute_build(opts):
     pip_options = config.pip_options()
     pip_command_base = None
     if pypi_server is not None:
-
-        pypirc = PypircFile()
-        if pypi_server in pypirc.index_servers:
-            pypi_url = pypirc.get_pypi_url(pypi_server)
-        else:
-            pypi_conf = get_pypi_auth()
-            pypi_url = (
-                "https://{pypi_username}:{pypi_token}@{pypi_server}/simple"
-            ).format(
-                pypi_token=pypi_conf['token'],
-                pypi_username=pypi_conf['username'],
-                pypi_server=pypi_server
-            )
+        pypi_url = config.pypi_url()
 
         pip_command_base = (
             '{0}/bin/pip install -i {1}'
