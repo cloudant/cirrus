@@ -12,8 +12,6 @@ conf = load_configuration()
 import configparser
 import os
 import pluggage.registry
-import subprocess
-from urllib.parse import quote_plus
 
 from cirrus.gitconfig import load_gitconfig
 from cirrus.environment import repo_directory
@@ -161,11 +159,9 @@ class Configuration(dict):
         Returns the full pypi url (simple) with credentials
         """
         pypi_creds = self.credentials.pypi_credentials()
-        encoded_username = quote_plus(pypi_creds['username'])
-        encoded_token = quote_plus(pypi_creds['token'])
         return 'https://{username}:{token}@{server}/simple'.format(
-            username=encoded_username,
-            token=encoded_token,
+            username=pypi_creds['username'],
+            token=pypi_creds['token'],
             server=self.pypi_server()
         )
 

@@ -90,7 +90,7 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(config2.package_version(), '1.2.4')
 
     @mock.patch('cirrus.gitconfig.shell_command')
-    @mock.patch('cirrus.configuration.subprocess.Popen')
+    @mock.patch('subprocess.Popen')
     def test_reading_missing(self, mock_pop, mock_shell):
         """test config load using repo dir"""
         mock_result = mock.Mock()
@@ -155,7 +155,7 @@ class ConfigurationTests(unittest.TestCase):
         )
         config.credentials.pypi_credentials = mock.Mock()
         config.credentials.pypi_credentials.return_value = {
-            'username': 'doge@dogehous.bark',
+            'username': 'doge%40dogehous.bark',
             'token': 'wowsuchtoken'
         }
         self.assertEqual(
