@@ -39,7 +39,7 @@ python -m venv venv
 
 # Upgrade to the latest pip, otherwise the default 9.x version has trouble 
 # with escaped @ characters in pip.conf
-pip install -U pip -i https://pypi.python.org/simple
+pip install -i https://pypi.python.org/simple -U pip setuptools
 
 # This depends on a properly configured pip.conf file.
 # See https://github.com/cloudant/service_engineering/wiki/Using-JFrog-Artifactory
