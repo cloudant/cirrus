@@ -37,6 +37,10 @@ cd ${LOCATION}
 python -m venv venv
 . venv/bin/activate
 
+# Upgrade to the latest pip, otherwise the default 9.x version has trouble 
+# with escaped @ characters in pip.conf
+pip install -U pip -i https://pypi.python.org/simple
+
 # This depends on a properly configured pip.conf file.
 # See https://github.com/cloudant/service_engineering/wiki/Using-JFrog-Artifactory
 pip install cirrus-cli${CIRRUS_INSTALL_VERSION} 1>> ${LOCATION}/install.log
