@@ -34,7 +34,7 @@ echo "Installing cirrus to LOCATION=${LOCATION}" > ${LOCATION}/install.log
 cd ${LOCATION}
 
 # bootstrap virtualenv
-virtualenv venv
+python -m venv venv
 . venv/bin/activate
 
 # This depends on a properly configured pip.conf file.
