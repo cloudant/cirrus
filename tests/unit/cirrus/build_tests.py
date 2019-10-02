@@ -2,10 +2,11 @@
 """
 build command test coverage
 """
-
+import os
+import tempfile
 from unittest import TestCase, mock
 
-from cirrus.build import execute_build, build_parser
+from cirrus.build import Requirements, execute_build, build_parser
 
 
 class BuildParserTests(TestCase):
@@ -100,6 +101,7 @@ class BuildCommandTests(TestCase):
         opts.upgrade = False
         opts.extras = []
         opts.nosetupdevelop = False
+        opts.freeze = False
 
         execute_build(opts)
 
@@ -116,6 +118,7 @@ class BuildCommandTests(TestCase):
         opts.upgrade = False
         opts.extras = []
         opts.nosetupdevelop = False
+        opts.freeze = False
 
         self.mock_conf.pypi_url.return_value = "dev"
         self.mock_pypirc_inst.index_servers = ['dev']
@@ -135,6 +138,7 @@ class BuildCommandTests(TestCase):
         opts.upgrade = False
         opts.extras = []
         opts.nosetupdevelop = False
+        opts.freeze = False
         self.mock_conf.pip_options.return_value = "PIPOPTIONS"
         execute_build(opts)
 
@@ -151,6 +155,7 @@ class BuildCommandTests(TestCase):
         opts.upgrade = True
         opts.extras = []
         opts.nosetupdevelop = False
+        opts.freeze = False
 
         execute_build(opts)
 
@@ -167,6 +172,7 @@ class BuildCommandTests(TestCase):
         opts.upgrade = False
         opts.extras = ['test-requirements.txt']
         opts.nosetupdevelop = False
+        opts.freeze = False
         execute_build(opts)
         self.mock_local.assert_has_calls([
             mock.call('CIRRUS_HOME/venv/bin/virtualenv CWD/venv'),
@@ -182,6 +188,7 @@ class BuildCommandTests(TestCase):
         opts.extras = []
         opts.upgrade = False
         opts.nosetupdevelop = True
+        opts.freeze = False
 
         execute_build(opts)
         self.mock_local.assert_has_calls([
@@ -196,6 +203,7 @@ class BuildCommandTests(TestCase):
         opts.extras = []
         opts.upgrade = False
         opts.nosetupdevelop = False
+        opts.freeze = False
         self.mock_conf.pypi_url.return_value = "PYPIURL"
 
         execute_build(opts)
@@ -214,6 +222,7 @@ class BuildCommandTests(TestCase):
         opts.extras = []
         opts.nosetupdevelop = False
         opts.upgrade = True
+        opts.freeze = False
         self.mock_conf.pypi_url.return_value = "PYPIURL"
 
         execute_build(opts)
@@ -223,3 +232,106 @@ class BuildCommandTests(TestCase):
             mock.call('CWD/venv/bin/pip install -i https://PYPIUSERNAME:TOKEN@PYPIURL/simple --upgrade -r requirements.txt'),
             mock.call('. ./venv/bin/activate && python setup.py develop')
         ])
+
+    @mock.patch('cirrus.build.Requirements', spec=Requirements)
+    def test_execute_build_freeze(self, mock_requirements):
+        """test execute_build with default pypi settings"""
+        opts = mock.Mock()
+        opts.clean = False
+        opts.upgrade = False
+        opts.extras = []
+        opts.nosetupdevelop = False
+        opts.freeze = True
+        m_requirements = mock_requirements.return_value
+
+        execute_build(opts)
+
+        self.mock_local.assert_has_calls([
+            mock.call('CIRRUS_HOME/venv/bin/virtualenv CWD/venv'),
+            mock.call('CWD/venv/bin/pip install -r requirements.txt'),
+            mock.call('. ./venv/bin/activate && python setup.py develop')
+        ])
+        mock_requirements.assert_called_once_with(
+            'requirements.txt',
+            'requirements-sub.txt',
+            '. ./venv/bin/activate'
+        )
+        self.assertTrue(m_requirements.parse_out_sub_dependencies.called)
+        self.assertTrue(m_requirements.update_sub_dependencies.called)
+        self.assertTrue(m_requirements.restore_sub_dependencies.called)
+
+
+class RequirementsTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.requirements_file = tempfile.mkstemp(text=True)[1]
+        with open(cls.requirements_file, 'w+') as f:
+            f.write(
+                '-r test-requirements-sub.txt\n'
+                'Doge==0.0.0\n'
+                'bar==0.0.0\n'
+                'carburetor==16.1.0.e321a26\n'
+                'foo==0.0.0\n'
+            )
+        cls.sub_requirements_file = tempfile.mkstemp(text=True)[1]
+        with open(cls.sub_requirements_file, 'w+') as f:
+            f.write(
+            'baz==0.0.0\n'
+            'oof==0.0.0\n'
+        )
+        cls.requirements = Requirements(
+            cls.requirements_file,
+            cls.sub_requirements_file,
+            '. ./venv/bin/activate'
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(cls.requirements_file)
+        os.remove(cls.sub_requirements_file)
+
+    @mock.patch('cirrus.build.run')
+    def test_requirements(self, mock_run):
+        # Ensures the nested requirments file is removed
+        self.requirements.parse_out_sub_dependencies()
+        with open(self.requirements_file, 'r') as f:
+            req_contents = f.read()
+        self.assertEqual(
+            'Doge==0.0.0\nbar==0.0.0\ncarburetor==16.1.0.e321a26\nfoo==0.0.0',
+            req_contents
+        )
+
+        # Ensures sub dependencies get updated
+        mock_run.side_effect = self.mock_pick_freeze
+        self.requirements.update_sub_dependencies()
+
+        with open(self.sub_requirements_file, 'r') as f:
+            new_contents = f.read()
+        self.assertEqual('baz==0.0.1\noof==0.1.0', new_contents)
+
+        # Ensures the nested requirements file is restored
+        self.requirements.restore_sub_dependencies()
+        with open(self.requirements_file, 'r') as f:
+            req_contents = f.read()
+        sub_required_line = '-r {}\n'.format(self.sub_requirements_file)
+        self.assertEqual(
+            '{}'
+            'Doge==0.0.0\n'
+            'bar==0.0.0\n'
+            'carburetor==16.1.0.e321a26\n'
+            'foo==0.0.0'.format(sub_required_line),
+            req_contents
+        )
+
+    def mock_pick_freeze(self, *args):
+        os.remove(self.sub_requirements_file)
+        with open(self.sub_requirements_file, 'w+') as f:
+            f.write(
+                '-e git+somegiturl'
+                'Doge==0.0.0\n'
+                'bar==0.0.0\n'
+                'baz==0.0.1\n'
+                'carburetor==16.1.0.e321a26\n'
+                'foo==0.0.0\n'
+                'oof==0.1.0'
+            )
