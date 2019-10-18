@@ -21,7 +21,6 @@ def build_parser(argslist):
     parser = ArgumentParser(
         description='git cirrus test command'
     )
-    
     parser.add_argument(
         '--suite',
         help=(
@@ -32,8 +31,8 @@ def build_parser(argslist):
     )
     parser.add_argument(
         '--mode',
-        choices=['nosetests', 'tox'],
-        default=None,
+        choices=['nosetests', 'pytest', 'tox'],
+        default='pytest',
         help='Choose test runner framework'
     )
     parser.add_argument(
@@ -62,6 +61,21 @@ def nose_run(config, opts):
     )
 
 
+def pytest_run(config, opts):
+    """
+    Locally activate virtualenv and run tests with pytest
+    """
+    testpath = config.test_where(opts.suite)
+    command = (
+        '. ./{}/bin/activate && pytest {} {}'.format(
+            config.venv_name(),
+            testpath,
+            opts.options
+        )
+    )
+    run(command, pty=True)  # pty preserves pytest colors
+
+
 def tox_run(config, opts):
     """
     tox test
@@ -85,20 +99,20 @@ def main():
     """
     opts = build_parser(sys.argv[1:])
     config = load_configuration()
-    mode = config.test_mode(opts.suite)
-    if opts.mode:
-        mode = opts.mode
+    testrunners = {
+        'nosetest': nose_run,
+        'pytest': pytest_run,
+        'tox': tox_run
+    }
 
-    # backwards compat: default to nosetests
-    if mode is None:
-        mode = 'nosetests'
+    try:
+        testrunner = testrunners[opts.mode]
+    except KeyError as ex:
+        # argpase will catch this first, but just in case...
+        sys.exit("Invalid selection for --mode: {}".format(ex))
 
-    if mode == 'nosetests':
-        nose_run(config, opts)
-        sys.exit(0)
-    if mode == 'tox':
-        tox_run(config, opts)
-        sys.exit(0)
+    testrunner(config, opts)
+    sys.exit(0)
 
 
 if __name__ == '__main__':
