@@ -100,7 +100,7 @@ def main():
     opts = build_parser(sys.argv[1:])
     config = load_configuration()
     testrunners = {
-        'nosetest': nose_run,
+        'nosetests': nose_run,
         'pytest': pytest_run,
         'tox': tox_run
     }
