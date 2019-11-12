@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 """
-_release_
-
 Implement git cirrus release command
-
-
 """
+from argparse import ArgumentParser
 import os
 import sys
 import datetime
@@ -15,8 +12,9 @@ from collections import OrderedDict
 from invoke import run
 import pluggage.registry
 
-import argparse
-from argparse import ArgumentParser
+from utilitarian import servicenow
+
+from cirrus import release_publish
 from cirrus.configuration import load_configuration
 from cirrus.environment import repo_directory
 from cirrus.git_tools import build_release_notes
@@ -401,6 +399,20 @@ def build_parser(argslist):
         help='Optional file path of the tarball to be uploaded'
     )
     upload_command.set_defaults(pypi_sudo=True)
+
+    publish_command = subparsers.add_parser('publish')
+    publish_command.add_argument(
+        '-p',
+        '--plugin',
+        help='Name of plugin to use for data extraction'
+    )
+    publish_command.add_argument(
+        '-n',
+        '--reference-number',
+        type=str,
+        help='reference number used by data extraction plugin,'
+             ' for example GitHub Issue or PR number'
+    )
 
     opts = parser.parse_args(argslist)
     return opts
@@ -829,6 +841,17 @@ def update_requirements(path, versions):
         fh.truncate()
 
 
+def publish(opts):
+    """
+    ..warning:: WIP
+    Open a ServiceNow CR
+    :param int pr: Pull Reqeust number
+    """
+    plugin = release_publish.get_plugin(opts.plugin)
+    sn_params = plugin.get_service_now_params(opts.reference_number)
+    servicenow.ServiceNow('get creds from config', 'test').create(sn_params)
+
+
 def main():
     opts = build_parser(sys.argv)
     if opts.command == 'new':
@@ -848,6 +871,9 @@ def main():
 
     if opts.command == 'build_and_upload':
         build_and_upload(opts)
+
+    if opts.command == 'publish':
+        publish(opts)
 
 if __name__ == '__main__':
 
