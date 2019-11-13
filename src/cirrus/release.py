@@ -843,7 +843,7 @@ def update_requirements(path, versions):
 
 def publish(opts):
     """
-    ..warning:: WIP, plugin is hardcoded for now
+    ..warning:: WIP
     Open a ServiceNow CR
     :param int pr: Pull Reqeust number
     """

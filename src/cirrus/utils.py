@@ -78,6 +78,6 @@ def update_version(filename, new_version, vers_attr='__version__'):
 
 def get_release_publisher_plugin(name):
     if name == 'github_issue':
-        return GitHubIssueReleaseInfoExtractor
+        return GitHubIssueReleaseInfoExtractor()
     # maybe just raise as this shouldn't be used directly
-    return ReleaseInfoExtractor
+    return ReleaseInfoExtractor()
