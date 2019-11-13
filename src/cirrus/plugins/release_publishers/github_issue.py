@@ -18,7 +18,7 @@ class GitHubIssueReleaseInfoExtractor(ReleaseInfoExtractor):
         gh_auth_user, gh_auth_pass = self.config.credentials.github_credentials()
         creds = credentials.Config(
             inline_cfg={
-                'github': {  # where's this come from (here maybe: https://github.ibm.com/cloudant/utilitarian/blob/master/utilitarian/config_specs/cloudant.json)? example from carb (environment_request_database uses 'github_enterprise')
+                'github_enterprise': {  # where's this come from (here maybe: https://github.ibm.com/cloudant/utilitarian/blob/master/utilitarian/config_specs/cloudant.json)? example from carb (environment_request_database uses 'github_enterprise')
                     'url': 'https://github.com',
                     'username': gh_auth_user,
                     'token': gh_auth_pass
@@ -26,8 +26,8 @@ class GitHubIssueReleaseInfoExtractor(ReleaseInfoExtractor):
             }
         )
         gh_issue = ReleaseIssue.load(
-            self.config.organisation_name(),
-            self.config.package_name(),
+            'cloudant',  # make configurable
+            'service_engineering',  # make configurable
             id_,
             creds=creds
         )
