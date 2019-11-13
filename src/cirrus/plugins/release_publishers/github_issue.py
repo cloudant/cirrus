@@ -1,7 +1,7 @@
 from utilitarian import credentials
 from utilitarian.services import github, servicenow
 
-from release_publishers.base import ReleaseInfoExtractor
+from cirrus.plugins.release_publishers.base import ReleaseInfoExtractor
 
 
 class GitHubIssueReleaseInfoExtractor(ReleaseInfoExtractor):

@@ -23,9 +23,8 @@ from cirrus.git_tools import branch, checkout_and_pull
 from cirrus.git_tools import commit_files, remote_branch_exists
 from cirrus.git_tools import get_active_commit_sha, get_active_branch
 from cirrus.github_tools import GitHubContext
-from cirrus.utils import update_file, update_version
+from cirrus.utils import get_release_publisher_plugin, update_file, update_version
 from cirrus.logger import get_logger
-from cirrus.plugins.release_publishers import get_plugin as get_pub_plugin
 from cirrus.plugins.jenkins import JenkinsClient
 
 BUILD_CMD = 'python setup.py bdist_wheel'
@@ -844,11 +843,11 @@ def update_requirements(path, versions):
 
 def publish(opts):
     """
-    ..warning:: WIP
+    ..warning:: WIP, plugin is hardcoded for now
     Open a ServiceNow CR
     :param int pr: Pull Reqeust number
     """
-    plugin = get_pub_plugin(opts.plugin)
+    plugin = get_release_publisher_plugin(opts.plugin)
     sn_params = plugin.get_service_now_params(opts.reference_number)
     creds = credentials.Config(
         inline_cfg={

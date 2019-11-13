@@ -7,6 +7,9 @@ General purpose utils
 """
 import codecs
 
+from cirrus.plugins.release_publishers.base import ReleaseInfoExtractor
+from cirrus.plugins.release_publishers.github_issue import GitHubIssueReleaseInfoExtractor
+
 
 def update_file(filename, sentinel, text):
     """
@@ -71,3 +74,10 @@ def update_version(filename, new_version, vers_attr='__version__'):
 
     with open(filename, 'w') as handle:
         handle.writelines(lines)
+
+
+def get_release_publisher_plugin(name):
+    if name == 'github_issue':
+        return GitHubIssueReleaseInfoExtractor
+    # maybe just raise as this shouldn't be used directly
+    return ReleaseInfoExtractor
