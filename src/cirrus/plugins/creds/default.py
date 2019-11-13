@@ -126,3 +126,6 @@ class Default(CredsPlugin):
     def set_file_server_credentials(self, username, keyfile):
         self.config.set_param('cirrus', 'file-server-username', username)
         self.config.set_param('cirrus', 'file-server-keyfile', keyfile)
+
+    def get_servicenow_token(self):
+        return self.config.get_param('cirrus', 'servicenow-token')

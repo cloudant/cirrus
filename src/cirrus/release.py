@@ -12,10 +12,10 @@ from collections import OrderedDict
 from invoke import run
 import pluggage.registry
 
-from utilitarian import servicenow
+from utilitarian import credentials, servicenow
 
 from cirrus import release_publish
-from cirrus.configuration import load_configuration
+from cirrus.configuration import get_servicenow_token, load_configuration
 from cirrus.environment import repo_directory
 from cirrus.git_tools import build_release_notes
 from cirrus.git_tools import has_unstaged_changes
@@ -849,7 +849,16 @@ def publish(opts):
     """
     plugin = release_publish.get_plugin(opts.plugin)
     sn_params = plugin.get_service_now_params(opts.reference_number)
-    servicenow.ServiceNow('get creds from config', 'test').create(sn_params)
+    creds = credentials.Config(
+        inline_cfg={
+            'servicenow': {
+                'keys': [get_servicenow_token()],
+                'allowed_prefixes': ['test_']
+            }
+        }
+    )
+    response = servicenow.ServiceNow(creds, 'test').create(sn_params)
+    print(response.json())
 
 
 def main():

@@ -337,3 +337,8 @@ def get_chef_auth():
         'chef_client_user': chef['chef-client-user'],
         'chef_client_keyfile': chef['chef-client-keyfile']
     }
+
+
+def get_servicenow_token(self):
+    c = load_configuration()
+    return c.credentials.get_servicenow_token()
