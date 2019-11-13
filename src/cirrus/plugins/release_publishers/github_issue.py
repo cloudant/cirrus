@@ -15,7 +15,7 @@ class GitHubIssueReleaseInfoExtractor(ReleaseInfoExtractor):
         if params is not None:
             sn_params.from_dict(params)
         # TODO figure out a cleaner way to get creds...this seems strange
-        gh_auth_user, gh_auth_pass = self.config.get_gethub_auth()
+        gh_auth_user, gh_auth_pass = self.config.credentials.github_credentials()
         creds = credentials.Config(
             inline_cfg={
                 'github': {  # where's this come from (here maybe: https://github.ibm.com/cloudant/utilitarian/blob/master/utilitarian/config_specs/cloudant.json)? example from carb (environment_request_database uses 'github_enterprise')
