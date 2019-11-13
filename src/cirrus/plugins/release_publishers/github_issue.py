@@ -1,4 +1,5 @@
-from utilitarian import credentials, github, servicenow
+from utilitarian import credentials
+from utilitarian.services import github, servicenow
 
 from release_publishers.base import ReleaseInfoExtractor
 

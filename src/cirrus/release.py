@@ -12,7 +12,8 @@ from collections import OrderedDict
 from invoke import run
 import pluggage.registry
 
-from utilitarian import credentials, servicenow
+from utilitarian import credentials
+from utilitarian.services import servicenow
 
 from cirrus import release_publish
 from cirrus.configuration import get_servicenow_token, load_configuration
