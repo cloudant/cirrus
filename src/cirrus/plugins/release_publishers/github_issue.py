@@ -1,4 +1,5 @@
 from utilitarian import credentials
+from utilitarian.config_spec import NullConfigSpec
 from utilitarian.services import github, servicenow
 
 from cirrus.plugins.release_publishers.base import ReleaseInfoExtractor
@@ -23,7 +24,8 @@ class GitHubIssueReleaseInfoExtractor(ReleaseInfoExtractor):
                     'username': gh_auth_user,
                     'token': gh_auth_pass
                 }
-            }
+            },
+            spec=NullConfigSpec()
         )
         gh_issue = ReleaseIssue.load(
             'cloudant',  # make configurable
