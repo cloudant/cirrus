@@ -15,7 +15,6 @@ import pluggage.registry
 from utilitarian import credentials
 from utilitarian.services import servicenow
 
-from cirrus import release_publish
 from cirrus.configuration import get_servicenow_token, load_configuration
 from cirrus.environment import repo_directory
 from cirrus.git_tools import build_release_notes
@@ -26,6 +25,7 @@ from cirrus.git_tools import get_active_commit_sha, get_active_branch
 from cirrus.github_tools import GitHubContext
 from cirrus.utils import update_file, update_version
 from cirrus.logger import get_logger
+from cirrus.plugins.release_publishers import get_plugin as get_pub_plugin
 from cirrus.plugins.jenkins import JenkinsClient
 
 BUILD_CMD = 'python setup.py bdist_wheel'
@@ -848,7 +848,7 @@ def publish(opts):
     Open a ServiceNow CR
     :param int pr: Pull Reqeust number
     """
-    plugin = release_publish.get_plugin(opts.plugin)
+    plugin = get_pub_plugin(opts.plugin)
     sn_params = plugin.get_service_now_params(opts.reference_number)
     creds = credentials.Config(
         inline_cfg={
