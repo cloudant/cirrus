@@ -358,11 +358,14 @@ class ReleaseBuildAndUploadTest(TestCase):
 
         build_and_upload(opts)
         self.assertTrue(self.mock_get_active_sha.called)
-        self.mock_run.assert_called_with(
-            'cirrus/venv/bin/python setup.py egg_info --tag-build ".deadbee" bdist_wheel upload -r local',
-            hide='stdout',
-            echo=True
-        )
+        self.mock_run.assert_has_calls([
+            mock.call(
+                'cirrus/venv/bin/python setup.py egg_info --tag-build ".deadbee" bdist_wheel upload -r local',
+                hide='stdout',
+                echo=True
+            ),
+            mock.call('git tag 1.2.3.deadbee && git push --tags')
+        ])
 
 
 class ArtifactNameTests(TestCase):

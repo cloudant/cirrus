@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 """
-_release_
-
 Implement git cirrus release command
-
-
 """
 import os
 import sys
@@ -796,6 +792,11 @@ def build_and_upload(opts):
         print(submit_msg)
     except Exception:
         print('Unable to print submit message')
+    if opts.dev:
+        release_version = '.'.join((config.package_version(), active_sha))
+        run(
+            'git tag {} && git push --tags'.format(release_version)
+        )
     LOGGER.info("...Build and upload complete")
 
 
