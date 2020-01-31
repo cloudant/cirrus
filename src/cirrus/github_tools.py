@@ -17,8 +17,15 @@ from cirrus.logger import get_logger
 
 LOGGER = get_logger()
 
+try:
+    API_BASE = load_configuration()['github']['api_base'].rstrip('/')
+    print('\n*********')
+    print(API_BASE)
+except KeyError:
+    API_BASE = 'https://api.github.com'
 
-class GitHubContext(object):
+
+class GitHubContext:
     """
     _GitHubContext_
 
@@ -26,7 +33,7 @@ class GitHubContext(object):
     useful GH commands
 
     """
-    def __init__(self, repo_dir, package_dir=None):
+    def __init__(self, repo_dir, package_dir=None, api_base=API_BASE):
         self.repo_dir = repo_dir
         self.repo = git.Repo(repo_dir)
         self.config = load_configuration(package_dir)
@@ -35,11 +42,21 @@ class GitHubContext(object):
             'Authorization': 'token {0}'.format(self.token),
             'Content-Type': 'application/json'
         }
+        self.api_base = api_base
 
     @property
     def active_branch_name(self):
         """return the current branch name"""
         return self.repo.active_branch.name
+
+    @property
+    def repository_api_base(self):
+        url = "{api_base}/repos/{org}/{repo}".format(
+            api_base=self.api_base,
+            org=self.config.organisation_name(),
+            repo=self.config.package_name(),
+        )
+        return url
 
     def __enter__(self):
         """start context, establish session"""
@@ -63,9 +80,14 @@ class GitHubContext(object):
         """
         if branch is None:
             branch = self.active_branch_name
-        url = "https://api.github.com/repos/{org}/{repo}/commits/{branch}/status".format(
-            org=self.config.organisation_name(),
-            repo=self.config.package_name(),
+        # url = "{api_base}/repos/{org}/{repo}/commits/{branch}/status".format(
+        #     api_base=self.api_base,
+        #     org=self.config.organisation_name(),
+        #     repo=self.config.package_name(),
+        #     branch=branch
+        # )
+        url = "{repo_base}/commits/{branch}/status".format(
+            repo_base=self.repository_api_base,
             branch=branch
         )
         resp = self.session.get(url)
@@ -79,9 +101,14 @@ class GitHubContext(object):
         given branch
 
         """
-        url = "https://api.github.com/repos/{org}/{repo}/commits/{branch}/statuses".format(
-            org=self.config.organisation_name(),
-            repo=self.config.package_name(),
+        # url = "{api_base}/repos/{org}/{repo}/commits/{branch}/statuses".format(
+        #     api_base=self.api_base,
+        #     org=self.config.organisation_name(),
+        #     repo=self.config.package_name(),
+        #     branch=branch
+        # )
+        url = "{repo_base}/commits/{branch}/statuses".format(
+            repo_base=self.repository_api_base,
             branch=branch
         )
         resp = self.session.get(url)
@@ -141,11 +168,18 @@ class GitHubContext(object):
             if "rejected" not in str(ex):
                 raise
 
-        url = "https://api.github.com/repos/{org}/{repo}/statuses/{sha}".format(
-            org=self.config.organisation_name(),
-            repo=self.config.package_name(),
+        # url = "{api_base}/repos/{org}/{repo}/statuses/{sha}".format(
+        #     api_base=self.api_base,
+        #     org=self.config.organisation_name(),
+        #     repo=self.config.package_name(),
+        #     sha=sha
+        # )
+
+        url = "{repo_base}/statuses/{sha}".format(
+            repo_base=self.repository_api_base,
             sha=sha
         )
+
         data = json.dumps(
             {
                 "state": state,
@@ -292,9 +326,13 @@ class GitHubContext(object):
         for repos with lots of branches
 
         """
-        url = "https://api.github.com/repos/{org}/{repo}/branches".format(
-            org=self.config.organisation_name(),
-            repo=self.config.package_name()
+        # url = "{api_base}/repos/{org}/{repo}/branches".format(
+        #     api_base=self.api_base,
+        #     org=self.config.organisation_name(),
+        #     repo=self.config.package_name()
+        # )
+        url = "{repo_base}/branches".format(
+            repo_base=self.repository_api_base,
         )
         params = {'per_page': 100}
         resp = self.session.get(url, params=params)
@@ -352,9 +390,14 @@ class GitHubContext(object):
         :returns: yields json structures for each matched PR
 
         """
-        url = "https://api.github.com/repos/{org}/{repo}/pulls".format(
-            org=self.config.organisation_name(),
-            repo=self.config.package_name()
+        # url = "{api_base}/repos/{org}/{repo}/pulls".format(
+        #     api_base=self.api_base,
+        #     org=self.config.organisation_name(),
+        #     repo=self.config.package_name()
+        # )
+
+        url = "{repo_base}/pulls".format(
+            repo_base=self.repository_api_base
         )
         params = {
             'state': 'open',
@@ -380,9 +423,15 @@ class GitHubContext(object):
         :returns: json structure (see GH API)
 
         """
-        url = "https://api.github.com/repos/{org}/{repo}/pulls/{number}".format(
-            org=self.config.organisation_name(),
-            repo=self.config.package_name(),
+        # url = "{api_base}/repos/{org}/{repo}/pulls/{number}".format(
+        #     api_base=self.api_base,
+        #     org=self.config.organisation_name(),
+        #     repo=self.config.package_name(),
+        #     number=pr
+        # )
+
+        url = "{repo_base}/pulls/{number}".format(
+            repo_base=self.repository_api_base,
             number=pr
         )
 
@@ -451,7 +500,8 @@ def branch_status(branch_name):
     """
     config = load_configuration()
     token = get_github_auth()[1]
-    url = "https://api.github.com/repos/{org}/{repo}/commits/{branch}/status".format(
+    url = "{api_base}/repos/{org}/{repo}/commits/{branch}/status".format(
+        api_base=API_BASE,
         org=config.organisation_name(),
         repo=config.package_name(),
         branch=branch_name
@@ -492,7 +542,8 @@ def current_branch_mark_status(repo_dir, state):
         if "rejected" not in str(ex):
             raise
 
-    url = "https://api.github.com/repos/{org}/{repo}/statuses/{sha}".format(
+    url = "{api_base}/repos/{org}/{repo}/statuses/{sha}".format(
+        api_base=API_BASE,
         org=config.organisation_name(),
         repo=config.package_name(),
         sha=sha
@@ -538,9 +589,11 @@ def create_pull_request(
         raise RuntimeError('body is None')
     config = load_configuration()
 
-    url = 'https://api.github.com/repos/{0}/{1}/pulls'.format(
-        config.organisation_name(),
-        config.package_name())
+    url = '{api_base}/repos/{org}/{repo}/pulls'.format(
+        api_base=API_BASE,
+        org=config.organisation_name(),
+        repo=config.package_name()
+    )
 
     if token is None:
         token = get_github_auth()[1]
@@ -574,8 +627,11 @@ def comment_on_sha(owner, repo, comment, sha, path, token=None):
     """
     add a comment to the commit/sha provided
     """
-    url = "https://api.github.com/repos/{owner}/{repo}/commits/{sha}/comments".format(
-        owner=owner, repo=repo, sha=sha
+    url = "{api_base}/repos/{owner}/{repo}/commits/{sha}/comments".format(
+        api_base=API_BASE,
+        owner=owner,
+        repo=repo,
+        sha=sha
     )
     if token is None:
         token = get_github_auth()[1]
@@ -595,8 +651,10 @@ def comment_on_sha(owner, repo, comment, sha, path, token=None):
 
 def get_releases(owner, repo, token=None):
 
-    url = "https://api.github.com/repos/{owner}/{repo}/releases".format(
-        owner=owner, repo=repo
+    url = "{api_base}/repos/{owner}/{repo}/releases".format(
+        api_base=API_BASE,
+        owner=owner,
+        repo=repo
     )
     if token is None:
         token = get_github_auth()[1]
