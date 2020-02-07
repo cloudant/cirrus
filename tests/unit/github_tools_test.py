@@ -63,6 +63,11 @@ class GithubToolsTest(TestCase):
         ).start()
         self.mock_load_configuration.return_value = config
 
+        self.mock_get_github_auth = mock.patch(
+            'cirrus.github_tools.get_github_auth'
+        ).start()
+        self.mock_get_github_auth.return_value = ('user', 'token')
+
     def tearDown(self):
         """
         teardown mocks
@@ -153,6 +158,11 @@ class GitHubContextTest(TestCase):
             'cirrus.github_tools.load_configuration'
         ).start()
         self.mock_load_configuration.return_value = mock_load_configuration()
+
+        self.mock_get_github_auth = mock.patch(
+            'cirrus.github_tools.get_github_auth'
+        ).start()
+        self.mock_get_github_auth.return_value = ('user', 'token')
 
         session_patcher = mock.patch('cirrus.github_tools.requests.Session')
 
