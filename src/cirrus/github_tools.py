@@ -1,28 +1,28 @@
-'''
+"""
 Contains class for handling the creation of pull requests
-'''
-import os
-import git
-import json
+"""
 import time
+
 import arrow
+import git
 import requests
-import itertools
-
 from cirrus.configuration import get_github_auth, load_configuration
-from cirrus.git_tools import get_active_branch
-from cirrus.git_tools import push
+from cirrus.git_tools import get_active_branch, push
 from cirrus.logger import get_logger
-
 
 LOGGER = get_logger()
 
-try:
-    API_BASE = load_configuration()['github']['api_base'].rstrip('/')
-    print('\n*********')
-    print(API_BASE)
-except KeyError:
-    API_BASE = 'https://api.github.com'
+
+def _api_base():
+    """
+    Return the github.api_base URL, or https://api.github.ibm.com if not
+    configured.
+    """
+    try:
+        url = load_configuration()['github']['api_base'].rstrip('/')
+    except KeyError:
+        url = 'https://api.github.ibm.com'
+    return url
 
 
 class GitHubContext:
@@ -33,7 +33,7 @@ class GitHubContext:
     useful GH commands
 
     """
-    def __init__(self, repo_dir, package_dir=None, api_base=API_BASE):
+    def __init__(self, repo_dir, package_dir=None):
         self.repo_dir = repo_dir
         self.repo = git.Repo(repo_dir)
         self.config = load_configuration(package_dir)
@@ -42,7 +42,7 @@ class GitHubContext:
             'Authorization': 'token {0}'.format(self.token),
             'Content-Type': 'application/json'
         }
-        self.api_base = api_base
+        self.api_base = _api_base()
 
     @property
     def active_branch_name(self):
@@ -80,12 +80,7 @@ class GitHubContext:
         """
         if branch is None:
             branch = self.active_branch_name
-        # url = "{api_base}/repos/{org}/{repo}/commits/{branch}/status".format(
-        #     api_base=self.api_base,
-        #     org=self.config.organisation_name(),
-        #     repo=self.config.package_name(),
-        #     branch=branch
-        # )
+
         url = "{repo_base}/commits/{branch}/status".format(
             repo_base=self.repository_api_base,
             branch=branch
@@ -101,12 +96,6 @@ class GitHubContext:
         given branch
 
         """
-        # url = "{api_base}/repos/{org}/{repo}/commits/{branch}/statuses".format(
-        #     api_base=self.api_base,
-        #     org=self.config.organisation_name(),
-        #     repo=self.config.package_name(),
-        #     branch=branch
-        # )
         url = "{repo_base}/commits/{branch}/statuses".format(
             repo_base=self.repository_api_base,
             branch=branch
@@ -168,26 +157,17 @@ class GitHubContext:
             if "rejected" not in str(ex):
                 raise
 
-        # url = "{api_base}/repos/{org}/{repo}/statuses/{sha}".format(
-        #     api_base=self.api_base,
-        #     org=self.config.organisation_name(),
-        #     repo=self.config.package_name(),
-        #     sha=sha
-        # )
-
         url = "{repo_base}/statuses/{sha}".format(
             repo_base=self.repository_api_base,
             sha=sha
         )
 
-        data = json.dumps(
-            {
-                "state": state,
-                "description": "State after cirrus check.",
-                "context": context
-            }
-        )
-        resp = self.session.post(url, data=data)
+        data = {
+            "state": state,
+            "description": "State after cirrus check.",
+            "context": context
+        }
+        resp = self.session.post(url, json=data)
         resp.raise_for_status()
 
     def wait_on_gh_status(self, branch_name=None, timeout=600, interval=2):
@@ -211,7 +191,7 @@ class GitHubContext:
             if time_spent > timeout:
                 LOGGER.error("Exceeded timeout for branch status {}".format(branch_name))
                 break
-            status = branch_status(branch_name)
+            status = self.branch_state(branch_name)
             time.sleep(interval)
             time_spent += interval
 
@@ -326,11 +306,6 @@ class GitHubContext:
         for repos with lots of branches
 
         """
-        # url = "{api_base}/repos/{org}/{repo}/branches".format(
-        #     api_base=self.api_base,
-        #     org=self.config.organisation_name(),
-        #     repo=self.config.package_name()
-        # )
         url = "{repo_base}/branches".format(
             repo_base=self.repository_api_base,
         )
@@ -390,12 +365,6 @@ class GitHubContext:
         :returns: yields json structures for each matched PR
 
         """
-        # url = "{api_base}/repos/{org}/{repo}/pulls".format(
-        #     api_base=self.api_base,
-        #     org=self.config.organisation_name(),
-        #     repo=self.config.package_name()
-        # )
-
         url = "{repo_base}/pulls".format(
             repo_base=self.repository_api_base
         )
@@ -423,13 +392,6 @@ class GitHubContext:
         :returns: json structure (see GH API)
 
         """
-        # url = "{api_base}/repos/{org}/{repo}/pulls/{number}".format(
-        #     api_base=self.api_base,
-        #     org=self.config.organisation_name(),
-        #     repo=self.config.package_name(),
-        #     number=pr
-        # )
-
         url = "{repo_base}/pulls/{number}".format(
             repo_base=self.repository_api_base,
             number=pr
@@ -459,7 +421,7 @@ class GitHubContext:
             'description': 'Reviewed by {0}'.format(self.gh_user),
             'context': context,
         }
-        resp = self.session.post(pr_status_url, data=json.dumps(status))
+        resp = self.session.post(pr_status_url, json=status)
         resp.raise_for_status()
 
     def review_pull_request(
@@ -481,7 +443,7 @@ class GitHubContext:
         comment_data = {
             "body": comment,
         }
-        resp = self.session.post(comment_url, data=json.dumps(comment_data))
+        resp = self.session.post(comment_url, json=comment_data)
         resp.raise_for_status()
         if plusone:
             self.plus_one_pull_request(pr_data=pr_data, context=plusonecontext)
@@ -501,7 +463,7 @@ def branch_status(branch_name):
     config = load_configuration()
     token = get_github_auth()[1]
     url = "{api_base}/repos/{org}/{repo}/commits/{branch}/status".format(
-        api_base=API_BASE,
+        api_base=_api_base(),
         org=config.organisation_name(),
         repo=config.package_name(),
         branch=branch_name
@@ -543,7 +505,7 @@ def current_branch_mark_status(repo_dir, state):
             raise
 
     url = "{api_base}/repos/{org}/{repo}/statuses/{sha}".format(
-        api_base=API_BASE,
+        api_base=_api_base(),
         org=config.organisation_name(),
         repo=config.package_name(),
         sha=sha
@@ -554,18 +516,17 @@ def current_branch_mark_status(repo_dir, state):
         'Content-Type': 'application/json'
     }
 
-    data = json.dumps(
-        {
-            "state": state,
-            "description": "State after cirrus check.",
-            # @HACK: use the travis context, which is technically
-            # true, because we wait for Travis tests to pass before
-            # cutting a release. In the future, we need to setup a
-            # "cirrus" context, for clarity.
-            "context": "continuous-integration/travis-ci"
-        }
-    )
-    resp = requests.post(url, headers=headers, data=data)
+    data = {
+        "state": state,
+        "description": "State after cirrus check.",
+        # @HACK: use the travis context, which is technically
+        # true, because we wait for Travis tests to pass before
+        # cutting a release. In the future, we need to setup a
+        # "cirrus" context, for clarity.
+        "context": "continuous-integration/travis-ci"
+    }
+
+    resp = requests.post(url, headers=headers, json=data)
     resp.raise_for_status()
 
 
@@ -590,7 +551,7 @@ def create_pull_request(
     config = load_configuration()
 
     url = '{api_base}/repos/{org}/{repo}/pulls'.format(
-        api_base=API_BASE,
+        api_base=_api_base(),
         org=config.organisation_name(),
         repo=config.package_name()
     )
@@ -606,9 +567,10 @@ def create_pull_request(
         'title': pr_info['title'],
         'head': get_active_branch(repo_dir).name,
         'base': config.gitflow_branch_name(),
-        'body': pr_info['body']}
+        'body': pr_info['body']
+    }
 
-    resp = requests.post(url, data=json.dumps(data), headers=headers)
+    resp = requests.post(url, json=data, headers=headers)
     if resp.status_code == 422:
         LOGGER.error(
             (
@@ -628,7 +590,7 @@ def comment_on_sha(owner, repo, comment, sha, path, token=None):
     add a comment to the commit/sha provided
     """
     url = "{api_base}/repos/{owner}/{repo}/commits/{sha}/comments".format(
-        api_base=API_BASE,
+        api_base=_api_base(),
         owner=owner,
         repo=repo,
         sha=sha
@@ -652,7 +614,7 @@ def comment_on_sha(owner, repo, comment, sha, path, token=None):
 def get_releases(owner, repo, token=None):
 
     url = "{api_base}/repos/{owner}/{repo}/releases".format(
-        api_base=API_BASE,
+        api_base=_api_base(),
         owner=owner,
         repo=repo
     )
