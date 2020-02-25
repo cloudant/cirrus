@@ -9,7 +9,11 @@ import tempfile
 from unittest import mock
 
 from cirrus.plugins.creds.default import Default
-from cirrus.configuration import load_configuration
+from cirrus.configuration import (
+    get_github_api_base,
+    load_configuration,
+    Configuration
+)
 
 
 class ConfigurationTests(unittest.TestCase):
@@ -120,6 +124,20 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(
             mapping['cirrus']['configuration']['package']['name'], 'cirrus_tests'
         )
+
+    @mock.patch('cirrus.configuration.load_configuration')
+    def test_get_github_api_base(self, load_config):
+        """The github.api_base value from cirrus.conf is returned"""
+        c = Configuration('config_file')
+        config_content = {
+            'github': {
+                'api_base': 'https://API-BASE'
+            }
+        }
+        c.update(config_content)
+        load_config.return_value = c
+        api = get_github_api_base()
+        self.assertEqual('https://API-BASE', api)
 
 
 if __name__ == '__main__':
