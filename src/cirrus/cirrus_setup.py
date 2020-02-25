@@ -7,14 +7,14 @@ import sys
 import json
 import getpass
 import requests
+from urllib.parse import urljoin
 
 from argparse import ArgumentParser
 
-from cirrus.configuration import load_setup_configuration, get_creds_plugin
+from cirrus.configuration import load_setup_configuration, get_github_api_base
 from cirrus.logger import get_logger
 
 LOGGER = get_logger()
-GITHUB_AUTH_URL = "https://api.github.com/authorizations"
 
 
 def ask_question(question, default=None, valid=None):
@@ -67,13 +67,15 @@ def create_github_token():
     requests for things like pull requests
 
     """
+    authz_url = urljoin(get_github_api_base(), '/authorizations')
+
     oauth_note = "cirrus script"
     user = ask_question(
         'what is your github username?',
         default=os.environ['USER']
     )
     passwd = getpass.getpass('what is your github password?')
-    resp = requests.get(GITHUB_AUTH_URL, auth=(user, passwd))
+    resp = requests.get(authz_url, auth=(user, passwd))
     resp.raise_for_status()
     apps = resp.json()
     matched_app = None
@@ -87,7 +89,7 @@ def create_github_token():
         # need to create a new token
         LOGGER.info("Creating a new Token for github access...")
         resp = requests.post(
-            GITHUB_AUTH_URL,
+            authz_url,
             auth=(user, passwd),
             data=json.dumps(
                 {"scopes": ["gist", "repo"], "note": oauth_note}

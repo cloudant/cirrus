@@ -1,24 +1,19 @@
-'''
+"""
 Contains class for handling the creation of pull requests
-'''
-import os
-import git
-import json
+"""
 import time
+
 import arrow
+import git
 import requests
-import itertools
-
-from cirrus.configuration import get_github_auth, load_configuration
-from cirrus.git_tools import get_active_branch
-from cirrus.git_tools import push
+from cirrus.configuration import get_github_auth, load_configuration, get_github_api_base
+from cirrus.git_tools import get_active_branch, push
 from cirrus.logger import get_logger
-
 
 LOGGER = get_logger()
 
 
-class GitHubContext(object):
+class GitHubContext:
     """
     _GitHubContext_
 
@@ -35,11 +30,21 @@ class GitHubContext(object):
             'Authorization': 'token {0}'.format(self.token),
             'Content-Type': 'application/json'
         }
+        self.api_base = get_github_api_base()
 
     @property
     def active_branch_name(self):
         """return the current branch name"""
         return self.repo.active_branch.name
+
+    @property
+    def repository_api_base(self):
+        url = "{api_base}/repos/{org}/{repo}".format(
+            api_base=self.api_base,
+            org=self.config.organisation_name(),
+            repo=self.config.package_name(),
+        )
+        return url
 
     def __enter__(self):
         """start context, establish session"""
@@ -63,9 +68,9 @@ class GitHubContext(object):
         """
         if branch is None:
             branch = self.active_branch_name
-        url = "https://api.github.com/repos/{org}/{repo}/commits/{branch}/status".format(
-            org=self.config.organisation_name(),
-            repo=self.config.package_name(),
+
+        url = "{repo_base}/commits/{branch}/status".format(
+            repo_base=self.repository_api_base,
             branch=branch
         )
         resp = self.session.get(url)
@@ -79,9 +84,8 @@ class GitHubContext(object):
         given branch
 
         """
-        url = "https://api.github.com/repos/{org}/{repo}/commits/{branch}/statuses".format(
-            org=self.config.organisation_name(),
-            repo=self.config.package_name(),
+        url = "{repo_base}/commits/{branch}/statuses".format(
+            repo_base=self.repository_api_base,
             branch=branch
         )
         resp = self.session.get(url)
@@ -141,19 +145,17 @@ class GitHubContext(object):
             if "rejected" not in str(ex):
                 raise
 
-        url = "https://api.github.com/repos/{org}/{repo}/statuses/{sha}".format(
-            org=self.config.organisation_name(),
-            repo=self.config.package_name(),
+        url = "{repo_base}/statuses/{sha}".format(
+            repo_base=self.repository_api_base,
             sha=sha
         )
-        data = json.dumps(
-            {
-                "state": state,
-                "description": "State after cirrus check.",
-                "context": context
-            }
-        )
-        resp = self.session.post(url, data=data)
+
+        data = {
+            "state": state,
+            "description": "State after cirrus check.",
+            "context": context
+        }
+        resp = self.session.post(url, json=data)
         resp.raise_for_status()
 
     def wait_on_gh_status(self, branch_name=None, timeout=600, interval=2):
@@ -177,7 +179,7 @@ class GitHubContext(object):
             if time_spent > timeout:
                 LOGGER.error("Exceeded timeout for branch status {}".format(branch_name))
                 break
-            status = branch_status(branch_name)
+            status = self.branch_state(branch_name)
             time.sleep(interval)
             time_spent += interval
 
@@ -221,6 +223,10 @@ class GitHubContext(object):
         Work around intermittent push failures with a dumb exception retry loop
 
         """
+
+        if branch_name is None:
+            branch_name = self.active_branch_name
+
         count = 0
         error_flag = None
         while count < attempts:
@@ -236,7 +242,7 @@ class GitHubContext(object):
                 time.sleep(cooloff)
         if error_flag is not None:
             msg = "Unable to push branch {} due to repeated failures: {}".format(
-                self.active_branch_name, str(ex)
+                self.active_branch_name, str(error_flag)
             )
             raise RuntimeError(msg)
 
@@ -292,9 +298,8 @@ class GitHubContext(object):
         for repos with lots of branches
 
         """
-        url = "https://api.github.com/repos/{org}/{repo}/branches".format(
-            org=self.config.organisation_name(),
-            repo=self.config.package_name()
+        url = "{repo_base}/branches".format(
+            repo_base=self.repository_api_base,
         )
         params = {'per_page': 100}
         resp = self.session.get(url, params=params)
@@ -352,9 +357,8 @@ class GitHubContext(object):
         :returns: yields json structures for each matched PR
 
         """
-        url = "https://api.github.com/repos/{org}/{repo}/pulls".format(
-            org=self.config.organisation_name(),
-            repo=self.config.package_name()
+        url = "{repo_base}/pulls".format(
+            repo_base=self.repository_api_base
         )
         params = {
             'state': 'open',
@@ -380,9 +384,8 @@ class GitHubContext(object):
         :returns: json structure (see GH API)
 
         """
-        url = "https://api.github.com/repos/{org}/{repo}/pulls/{number}".format(
-            org=self.config.organisation_name(),
-            repo=self.config.package_name(),
+        url = "{repo_base}/pulls/{number}".format(
+            repo_base=self.repository_api_base,
             number=pr
         )
 
@@ -410,7 +413,7 @@ class GitHubContext(object):
             'description': 'Reviewed by {0}'.format(self.gh_user),
             'context': context,
         }
-        resp = self.session.post(pr_status_url, data=json.dumps(status))
+        resp = self.session.post(pr_status_url, json=status)
         resp.raise_for_status()
 
     def review_pull_request(
@@ -432,7 +435,7 @@ class GitHubContext(object):
         comment_data = {
             "body": comment,
         }
-        resp = self.session.post(comment_url, data=json.dumps(comment_data))
+        resp = self.session.post(comment_url, json=comment_data)
         resp.raise_for_status()
         if plusone:
             self.plus_one_pull_request(pr_data=pr_data, context=plusonecontext)
@@ -451,7 +454,8 @@ def branch_status(branch_name):
     """
     config = load_configuration()
     token = get_github_auth()[1]
-    url = "https://api.github.com/repos/{org}/{repo}/commits/{branch}/status".format(
+    url = "{api_base}/repos/{org}/{repo}/commits/{branch}/status".format(
+        api_base=get_github_api_base(),
         org=config.organisation_name(),
         repo=config.package_name(),
         branch=branch_name
@@ -492,7 +496,8 @@ def current_branch_mark_status(repo_dir, state):
         if "rejected" not in str(ex):
             raise
 
-    url = "https://api.github.com/repos/{org}/{repo}/statuses/{sha}".format(
+    url = "{api_base}/repos/{org}/{repo}/statuses/{sha}".format(
+        api_base=get_github_api_base(),
         org=config.organisation_name(),
         repo=config.package_name(),
         sha=sha
@@ -503,18 +508,17 @@ def current_branch_mark_status(repo_dir, state):
         'Content-Type': 'application/json'
     }
 
-    data = json.dumps(
-        {
-            "state": state,
-            "description": "State after cirrus check.",
-            # @HACK: use the travis context, which is technically
-            # true, because we wait for Travis tests to pass before
-            # cutting a release. In the future, we need to setup a
-            # "cirrus" context, for clarity.
-            "context": "continuous-integration/travis-ci"
-        }
-    )
-    resp = requests.post(url, headers=headers, data=data)
+    data = {
+        "state": state,
+        "description": "State after cirrus check.",
+        # @HACK: use the travis context, which is technically
+        # true, because we wait for Travis tests to pass before
+        # cutting a release. In the future, we need to setup a
+        # "cirrus" context, for clarity.
+        "context": "continuous-integration/travis-ci"
+    }
+
+    resp = requests.post(url, headers=headers, json=data)
     resp.raise_for_status()
 
 
@@ -538,9 +542,11 @@ def create_pull_request(
         raise RuntimeError('body is None')
     config = load_configuration()
 
-    url = 'https://api.github.com/repos/{0}/{1}/pulls'.format(
-        config.organisation_name(),
-        config.package_name())
+    url = '{api_base}/repos/{org}/{repo}/pulls'.format(
+        api_base=get_github_api_base(),
+        org=config.organisation_name(),
+        repo=config.package_name()
+    )
 
     if token is None:
         token = get_github_auth()[1]
@@ -553,9 +559,10 @@ def create_pull_request(
         'title': pr_info['title'],
         'head': get_active_branch(repo_dir).name,
         'base': config.gitflow_branch_name(),
-        'body': pr_info['body']}
+        'body': pr_info['body']
+    }
 
-    resp = requests.post(url, data=json.dumps(data), headers=headers)
+    resp = requests.post(url, json=data, headers=headers)
     if resp.status_code == 422:
         LOGGER.error(
             (
@@ -574,8 +581,11 @@ def comment_on_sha(owner, repo, comment, sha, path, token=None):
     """
     add a comment to the commit/sha provided
     """
-    url = "https://api.github.com/repos/{owner}/{repo}/commits/{sha}/comments".format(
-        owner=owner, repo=repo, sha=sha
+    url = "{api_base}/repos/{owner}/{repo}/commits/{sha}/comments".format(
+        api_base=get_github_api_base(),
+        owner=owner,
+        repo=repo,
+        sha=sha
     )
     if token is None:
         token = get_github_auth()[1]
@@ -595,8 +605,10 @@ def comment_on_sha(owner, repo, comment, sha, path, token=None):
 
 def get_releases(owner, repo, token=None):
 
-    url = "https://api.github.com/repos/{owner}/{repo}/releases".format(
-        owner=owner, repo=repo
+    url = "{api_base}/repos/{owner}/{repo}/releases".format(
+        api_base=get_github_api_base(),
+        owner=owner,
+        repo=repo
     )
     if token is None:
         token = get_github_auth()[1]

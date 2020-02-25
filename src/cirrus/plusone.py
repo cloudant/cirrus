@@ -11,7 +11,7 @@ import sys
 import json
 import argparse
 import requests
-from .configuration import get_github_auth
+from .configuration import get_github_auth, get_github_api_base
 
 
 class GitHubHelper(object):
@@ -30,6 +30,7 @@ class GitHubHelper(object):
         }
         self.session = requests.Session()
         self.session.headers.update(self.auth_headers)
+        self.api_base = get_github_api_base()
 
     def get_pr(self, org, repo, pr_id):
         """
@@ -37,7 +38,8 @@ class GitHubHelper(object):
 
         grab the PR details
         """
-        url = "https://api.github.com/repos/{org}/{repo}/pulls/{id}".format(
+        url = "{api_base}/repos/{org}/{repo}/pulls/{id}".format(
+            api_base=self.api_base,
             org=org,
             repo=repo,
             id=pr_id
@@ -72,7 +74,8 @@ class GitHubHelper(object):
         git_repo.remotes.origin.pull(ref)
 
         sha = git_repo.head.commit.hexsha
-        url = "https://api.github.com/repos/{org}/{repo}/statuses/{sha}".format(
+        url = "{api_base}/repos/{org}/{repo}/statuses/{sha}".format(
+            api_base=self.api_base,
             org=org,
             repo=repo,
             sha=sha
@@ -94,7 +97,8 @@ class GitHubHelper(object):
         Set the status for the given context to success on the
         provided sha
         """
-        url = "https://api.github.com/repos/{org}/{repo}/statuses/{sha}".format(
+        url = "{api_base}/repos/{org}/{repo}/statuses/{sha}".format(
+            api_base=self.api_base,
             org=org,
             repo=repo,
             sha=sha

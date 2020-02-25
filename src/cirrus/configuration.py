@@ -14,9 +14,12 @@ conf = load_configuration()
 import os
 from cirrus.gitconfig import load_gitconfig
 from cirrus.environment import repo_directory
-import subprocess
+from cirrus.logger import get_logger
 import configparser
 import pluggage.registry
+import subprocess
+
+LOGGER = get_logger()
 
 
 def get_creds_plugin(plugin_name):
@@ -337,3 +340,19 @@ def get_chef_auth():
         'chef_client_user': chef['chef-client-user'],
         'chef_client_keyfile': chef['chef-client-keyfile']
     }
+
+
+def get_github_api_base():
+    """
+    Return the github.api_base URL, or https://api.github.ibm.com if not
+    configured.
+    """
+    try:
+        url = load_configuration()['github']['api_base'].rstrip('/')
+    except KeyError:
+        url = 'https://api.github.ibm.com'
+        LOGGER.info(
+            "Failed to load api_base from github config section. "
+            "Using default: {}".format(url)
+        )
+    return url
